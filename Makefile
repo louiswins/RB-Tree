@@ -1,4 +1,4 @@
-CFLAGS += -Wall -pedantic
+CFLAGS += -Wall -Wno-variadic-macros -pedantic
 
 rbtree: main.o rbtree.o
 

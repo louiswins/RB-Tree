@@ -25,7 +25,7 @@ rb_tree rb_create() {
 	return ret;
 }
 
-int rb_insert(rb_tree tree, int data) {
+int RBinsert(rb_tree tree, int data) {
 	rb_node newparent = tree->nil;
 	rb_node root = tree->root;
 	rb_node newnode;
@@ -60,7 +60,7 @@ int rb_node_exists(rb_tree haystack, int needle) {
 	return get_node_by_key(haystack, needle) != haystack->nil;
 }
 
-int rb_delete(rb_tree tree, int key) {
+int RBdelete(rb_tree tree, int key) {
 	rb_node dead = get_node_by_key(tree, key);
 	rb_node newpos = tree->nil;
 	if (dead->lchild == tree->nil || dead->rchild == tree->nil) {

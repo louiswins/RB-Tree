@@ -8,7 +8,7 @@ int main(int argc, char *argv[]) {
 	int i;
 
 	for (i=1; i<=MAX; ++i) {
-		if (!rb_insert(root, i)) {
+		if (!RBinsert(root, i)) {
 			fprintf(stderr, "Error! %i already in the tree.\n",
 					i);
 		}

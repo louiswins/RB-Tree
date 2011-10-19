@@ -455,11 +455,19 @@ static int pow2(int e) {
 }
 static void rb_draw_subtree(FILE *fp, rb_tree tree, rb_node n, int l, int r, int h) {
 	char *col = (n->color == 'b') ? "black" : "red";
+	int mid = (l+r)/2;
+	int nexth = h + 2*RADIUS + PADDING;
 	if (n->lchild != tree->nil) {
-		rb_draw_subtree(fp, tree, n->lchild, l, (l+r)/2, h+2*RADIUS+PADDING);
+		fprintf(fp, "<line x1=\"%d\" y1=\"%d\" x2=\"%d\" y2=\"%d\" "
+			"style=\"stroke:black;stroke-width:1\"/>\n",
+			mid, h, (l+mid)/2, nexth);
+		rb_draw_subtree(fp, tree, n->lchild, l, mid, nexth);
 	}
 	if (n->rchild != tree->nil) {
-		rb_draw_subtree(fp, tree, n->rchild, (l+r)/2, r, h+2*RADIUS+PADDING);
+		fprintf(fp, "<line x1=\"%d\" y1=\"%d\" x2=\"%d\" y2=\"%d\" "
+			"style=\"stroke:black;stroke-width:1\"/>\n",
+			mid, h, (mid+r)/2, nexth);
+		rb_draw_subtree(fp, tree, n->rchild, mid, r, nexth);
 	}
 	fprintf(fp, "<circle cx=\"%d\" cy=\"%d\" r=\"%d\" stroke=\"black\" "
 		"stroke-width=\"2\" fill=\"%s\"/>\n", (l+r)/2, h, RADIUS, col);

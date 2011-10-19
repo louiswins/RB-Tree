@@ -89,9 +89,16 @@ int RBdelete(rb_tree tree, int key) {
 }
 
 void RBwrite(rb_tree tree) {
-	rb_node prev = rb_preorder_write(tree, tree->root, NULL);
-	if (prev != NULL)
-		printf("%c, %d\n", prev->color, prev->key);
+	if (tree->root == tree->nil) {
+		fprintf(stderr, "Error: empty tree\n");
+	}
+	/* Special case: the first node doesn't have a semicolon before it
+	 * (the others do so that the LAST node doesn't have a semicolon AFTER
+	 * it, as per the instructions */
+	printf("%c, %d", tree->root->color, tree->root->key);
+	rb_preorder_write(tree, tree->root->lchild);
+	rb_preorder_write(tree, tree->root->rchild);
+	putchar('\n');
 }
 
 rb_tree RBread() {
@@ -308,12 +315,11 @@ static rb_node rb_get_node_by_key(rb_tree haystack, int needle) {
 	return haystack->nil;
 }
 
-static rb_node rb_preorder_write(rb_tree tree, rb_node n, rb_node prev) {
-	if (n == tree->nil) return prev;
-	if (prev != NULL)
-		printf("%c, %d; ", prev->color, prev->key);
-	prev = rb_preorder_write(tree, n->lchild, n);
-	return rb_preorder_write(tree, n->rchild, prev);
+static void rb_preorder_write(rb_tree tree, rb_node n) {
+	if (n == tree->nil) return;
+	printf("; %c, %d", n->color, n->key);
+	rb_preorder_write(tree, n->lchild);
+	rb_preorder_write(tree, n->rchild);
 }
 
 

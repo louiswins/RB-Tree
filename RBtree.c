@@ -330,6 +330,7 @@ static void rb_delete_fix(rb_tree tree, rb_node n) {
 void RBwrite(rb_tree tree) {
 	if (tree->root == tree->nil) {
 		fprintf(stderr, "Error: empty tree\n");
+		return;
 	}
 	/* Special case to account for missing semicolon */
 	printf("%c, %d", tree->root->color, tree->root->key);

@@ -110,8 +110,10 @@ rb_tree RBread() {
 	do {
 		char col;
 		int data;
-		if (fscanf(infp, " %c, %d", &col, &data) != 2 || (col != 'b' && col != 'r')) {
-			fprintf(stderr, "File format error: continuing...\n");
+		if (fscanf(infp, " %c, %d ", &col, &data) != 2) {
+			fprintf(stderr, "File format error: continuing.\n");
+ 		} else if (col != 'b' && col != 'r') {
+			fprintf(stderr, "Invalid node color `%c': skipping.\n", col);
 		} else {
 			rb_node n = rb_new_node(ret, data);
 			eprintf(">> Read node %i(%c)\n", data, col);

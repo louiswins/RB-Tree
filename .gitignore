@@ -1,3 +1,5 @@
 run
 *.o
 *.svg
+RBinput.txt
+RBtree-debug.c

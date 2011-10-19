@@ -1,8 +1,6 @@
 #ifndef RBTREE_H
 #define RBTREE_H
 
-#define RBREADFILE "RBinput.txt"
-
 typedef struct rb_tree *rb_tree;
 
 /* Creates an empty Red-Black tree. */
@@ -20,10 +18,10 @@ int RBdelete(rb_tree tree, int key);
 
 /* Writes a tree to stdout in preorder format. */
 void RBwrite(rb_tree tree);
-/* Reads a tree in preorder format from file RBREADFILE.
+/* Reads a tree in preorder format from file.
  * DOES NOT CHECK to see if this tree is formatted correctly to preserve
  * red-black properties. */
-rb_tree RBread();
+rb_tree RBread(char *fname);
 
 /* Draws an SVG picture of the tree in the specified file. */
 void RBdraw(rb_tree tree, char *fname);

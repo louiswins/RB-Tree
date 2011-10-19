@@ -299,11 +299,11 @@ static void rb_preorder_write(rb_tree tree, rb_node n) {
 	rb_preorder_write(tree, n->rchild);
 }
 /* Reads a tree in preorder format from RBREADFILE. */
-rb_tree RBread() {
+rb_tree RBread(char *fname) {
 	rb_tree ret;
-	FILE *infp = fopen(RBREADFILE, "r");
+	FILE *infp = fopen(fname, "r");
 	if (infp == NULL) {
-		fprintf(stderr, "Error: couldn't read file %s.\n", RBREADFILE);
+		fprintf(stderr, "Error: couldn't read file %s.\n", fname);
 		return NULL;
 	}
 	ret = RBcreate();

@@ -47,7 +47,7 @@ int main(int argc, char *argv[]) {
 				break;
 			case 'R':
 			case 'r':
-				tmp = RBread();
+				tmp = RBread(READFILE);
 				if (tmp != NULL) {
 					if (tree != NULL) {
 						printf("Non-empty tree - overwriting.\n");

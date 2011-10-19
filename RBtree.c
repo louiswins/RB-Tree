@@ -10,15 +10,21 @@
 
 
 
+/* Creates an empty Red-Black tree. */
 rb_tree rb_create() {
 	rb_tree ret;
 	if ((ret = malloc(sizeof(*ret))) == NULL) {
+		fprintf(stderr, "Error: out of memory.\n");
 		return NULL;
 	}
 	/* We can't use rb_new_node() because it wants to set some of the values
 	 * to tree->nil. We don't care what the values are except for color, so
 	 * leave them at undefined. */
-	ret->nil = malloc(sizeof(*ret->nil));
+	if ((ret->nil = malloc(sizeof(*ret->nil))) == NULL) {
+		fprintf(stderr, "Error: out of memory.\n");
+		free(ret);
+		return NULL;
+	}
 	ret->nil->color = 'b';
 	ret->root = ret->nil;
 	return ret;
@@ -27,7 +33,6 @@ rb_tree rb_create() {
 int RBinsert(rb_tree tree, int data) {
 	rb_node newnode = rb_new_node(tree, data);
 	if (newnode == NULL) {
-		fprintf(stderr, "Error: out of memory.\n");
 		return 0;
 	}
 	newnode = rb_unsafe_insert(tree, newnode);
@@ -111,7 +116,6 @@ rb_tree RBread() {
 	ret = rb_create();
 	if (ret == NULL) {
 		fclose(infp);
-		fprintf(stderr, "Error: out of memory.\n");
 		return NULL;
 	}
 	do {
@@ -125,7 +129,6 @@ rb_tree RBread() {
 			rb_node n = rb_new_node(ret, data);
 			eprintf(">> Read node %i(%c)\n", data, col);
 			if (n == NULL) {
-				fprintf(stderr, "Error: out of memory.\n");
 				break;
 			}
 			n->color = col;
@@ -142,8 +145,10 @@ rb_tree RBread() {
 
 static rb_node rb_new_node(rb_tree tree, int data) {
 	rb_node ret;
-	if ((ret = malloc(sizeof(*ret))) == NULL)
+	if ((ret = malloc(sizeof(*ret))) == NULL) {
+		fprintf(stderr, "Error: out of memory.\n");
 		return NULL;
+	}
 	ret->key = data;
 	ret->parent = tree->nil;
 	ret->lchild = tree->nil;

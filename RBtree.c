@@ -1,4 +1,6 @@
-#include "rbtree.h"
+#include "RBtree.h"
+#include "RBtree_priv.h"
+
 #include <stdlib.h>
 #ifdef DEBUG
 #	include <stdio.h>
@@ -6,22 +8,6 @@
 #else
 #	define eprintf(...) ((void)0)
 #endif
-
-typedef struct rb_node {
-	int key;
-	struct rb_node *parent;
-	struct rb_node *left,
-		       *right;
-	enum { RED, BLACK } color;
-} *rb_node;
-struct rb_tree {
-	rb_node root;
-	rb_node nil;
-};
-
-static rb_node rb_new_node(rb_tree tree, int data);
-static void fix(rb_tree root, rb_node n);
-static void rotate(rb_tree tree, rb_node root, int go_left);
 #ifdef DEBUG
 static char col(rb_node node) {
 	return (node->color==BLACK) ? 'b' : 'r';
@@ -44,18 +30,21 @@ rb_tree rb_create() {
 	return ret;
 }
 
-void rb_insert(rb_tree tree, int data) {
+int rb_insert(rb_tree tree, int data) {
 	rb_node newparent = tree->nil;
 	rb_node root = tree->root;
-	rb_node newnode = rb_new_node(tree, data);
+	rb_node newnode;
 	while (root != tree->nil) {
 		newparent = root;
 		if (data < root->key) {
 			root = root->left;
-		} else {
+		} else if (data > root->key) {
 			root = root->right;
+		} else {
+			return 0;
 		}
 	}
+	newnode = rb_new_node(tree, data);
 	eprintf("> Inserting node %d(%c) below %d(%c)\n", newnode->key,
 			col(newnode), newparent->key, col(newparent));
 	newnode->parent = newparent;
@@ -68,26 +57,63 @@ void rb_insert(rb_tree tree, int data) {
 	} else {
 		newparent->right = newnode;
 	}
-	fix(tree, newnode);
+	insert_fix(tree, newnode);
+	return 1;
 }
 
-int node_exists(rb_tree haystack, int needle) {
+int rb_node_exists(rb_tree haystack, int needle) {
+	return get_node_by_key(haystack, needle) != haystack->nil;
+}
+
+int rb_delete(rb_tree tree, int key) {
+	rb_node dead = get_node_by_key(tree, key);
+	rb_node newpos = tree->nil;
+	if (dead->left == tree->nil || dead->right == tree->nil) {
+		newpos = dead;
+	} else {
+		newpos = successor(tree, dead);
+	}
+	return 0;
+	/* XXX */
+}
+
+
+
+
+
+
+
+static void delete_fix(rb_tree root, rb_node n) {}
+static rb_node successor(rb_tree tree, rb_node node) {
+	if (node->right != tree->nil) {
+		node = node->right;
+		while (node->left != tree->nil)
+			node = node->left;
+		return node;
+	} else {
+		rb_node ret = node->parent;
+		while (ret != tree->nil && ret->right == node) {
+			node = ret;
+			ret = ret->parent;
+		}
+		return ret;
+	}
+}
+static rb_node get_node_by_key(rb_tree haystack, int needle) {
 	rb_node root = haystack->root;
 	while (root != haystack->nil) {
 		eprintf(">> Passing through %d(%c)\n", root->key,
 				col(root));
 		if (root->key == needle) {
-			return 1;
+			return root;
 		} else if (needle < root->key) {
 			root = root->left;
 		} else {
 			root = root->right;
 		}
 	}
-	return 0;
+	return haystack->nil;
 }
-
-
 
 static rb_node rb_new_node(rb_tree tree, int data) {
 	rb_node ret;
@@ -100,6 +126,9 @@ static rb_node rb_new_node(rb_tree tree, int data) {
 	ret->color = RED;
 	return ret;
 }
+static void rb_free_node(rb_node node) {
+	free(node);
+}
 static rb_node get_uncle(rb_tree tree, rb_node n) {
 	rb_node gp;
 	if (n->parent == tree->nil || n->parent->parent == tree->nil) {
@@ -108,7 +137,7 @@ static rb_node get_uncle(rb_tree tree, rb_node n) {
 	gp = n->parent->parent;
 	return (gp->left == n->parent) ? gp->right : gp->left;
 }
-static void fix(rb_tree tree, rb_node n) {
+static void insert_fix(rb_tree tree, rb_node n) {
 	rb_node gp = n->parent->parent,
 		uncle = get_uncle(tree, n);
 

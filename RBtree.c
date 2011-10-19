@@ -485,7 +485,7 @@ static void rb_draw_subtree(FILE *fp, rb_tree tree, rb_node n, int l, int r, int
 		rb_draw_subtree(fp, tree, n->rchild, mid, r, nexth);
 	}
 	fprintf(fp, "<circle cx=\"%d\" cy=\"%d\" r=\"%d\" stroke=\"black\" "
-		"stroke-width=\"2\" fill=\"%s\"/>\n", (l+r)/2, h, RADIUS, col);
+		"stroke-width=\"1\" fill=\"%s\"/>\n", (l+r)/2, h, RADIUS, col);
 	fprintf(fp, "<text x=\"%d\" y=\"%d\" fill=\"white\" text-anchor=\"middle\" "
 		"dy=\"0.5ex\">%d</text>\n", (l+r)/2, h, n->key);
 }

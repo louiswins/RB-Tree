@@ -114,6 +114,7 @@ rb_tree RBread() {
 			fprintf(stderr, "File format error: continuing...\n");
 		} else {
 			rb_node n = rb_new_node(ret, data);
+			eprintf(">> Read node %i(%c)\n", data, col);
 			if (n == NULL) {
 				fprintf(stderr, "Error: out of memory.\n");
 				break;
@@ -122,7 +123,7 @@ rb_tree RBread() {
 			rb_unsafe_insert(ret, n);
 		}
 	/* skip over semicolon; if it isn't there, we know that input has ended. */
-	} while (getchar() == ';');
+	} while (getc(infp) == ';');
 	fclose(infp);
 	return ret;
 }

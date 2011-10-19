@@ -6,7 +6,7 @@ typedef struct rb_node {
 	struct rb_node *parent;
 	struct rb_node *left,
 		       *right;
-	enum { RED, BLACK } color;
+	char color;
 } *rb_node;
 struct rb_tree {
 	rb_node root;

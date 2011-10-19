@@ -8,11 +8,6 @@
 #else
 #	define eprintf(...) ((void)0)
 #endif
-#ifdef DEBUG
-static char col(rb_node node) {
-	return (node->color==BLACK) ? 'b' : 'r';
-}
-#endif
 
 
 
@@ -25,7 +20,7 @@ rb_tree rb_create() {
 	 * to tree->nil. We don't care what the values are except for color, so
 	 * leave them at undefined. */
 	ret->nil = malloc(sizeof(*ret->nil));
-	ret->nil->color = BLACK;
+	ret->nil->color = 'b';
 	ret->root = ret->nil;
 	return ret;
 }
@@ -46,7 +41,7 @@ int rb_insert(rb_tree tree, int data) {
 	}
 	newnode = rb_new_node(tree, data);
 	eprintf("> Inserting node %d(%c) below %d(%c)\n", newnode->key,
-			col(newnode), newparent->key, col(newparent));
+			newnode->color, newparent->key, newparen->color);
 	newnode->parent = newparent;
 	/* If we inserted a new root into the tree */
 	if (newparent == tree->nil) {
@@ -103,7 +98,7 @@ static rb_node get_node_by_key(rb_tree haystack, int needle) {
 	rb_node root = haystack->root;
 	while (root != haystack->nil) {
 		eprintf(">> Passing through %d(%c)\n", root->key,
-				col(root));
+				root->color);
 		if (root->key == needle) {
 			return root;
 		} else if (needle < root->key) {
@@ -123,7 +118,7 @@ static rb_node rb_new_node(rb_tree tree, int data) {
 	ret->parent = tree->nil;
 	ret->left = tree->nil;
 	ret->right = tree->nil;
-	ret->color = RED;
+	ret->color = 'r';
 	return ret;
 }
 static void rb_free_node(rb_node node) {
@@ -142,23 +137,23 @@ static void insert_fix(rb_tree tree, rb_node n) {
 		uncle = get_uncle(tree, n);
 
 	/* Case 1: uncle is colored red */
-	while (n->parent->color == RED && uncle->color == RED) {
+	while (n->parent->color == 'r' && uncle->color == 'r') {
 		/* If gp were null, then n->parent would be the root node (or
 		 * tree->nil), and would have to have been black. */
 		eprintf(">> Case 1: %d(%c), with uncle %d(%c)\n", n->key,
-				col(n), uncle->key, col(uncle));
-		gp->color = RED;
-		uncle->color = BLACK;
-		n->parent->color = BLACK;
+				n->color, uncle->key, uncle->color);
+		gp->color = 'r';
+		uncle->color = 'b';
+		n->parent->color = 'b';
 		n = gp;
 		gp = n->parent->parent;
 		uncle = get_uncle(tree, n);
 	}
 	
 	eprintf(">> Case 1 taken care of, on %d(%c) with parent %d(%c)\n",
-			n->key, col(n), n->parent->key, col(n->parent));
-	if (n->parent->color == BLACK) {
-		if (n == tree->root) n->color = BLACK;
+			n->key, n->color, n->parent->key, n->parent->color);
+	if (n->parent->color == 'b') {
+		if (n == tree->root) n->color = 'b';
 		return;
 	}
 
@@ -166,14 +161,14 @@ static void insert_fix(rb_tree tree, rb_node n) {
 	if ((n->parent->left == n) == (gp->left == uncle)) {
 		rb_node newroot = n->parent;
 		eprintf(">> Case 2: %d(%c), with uncle %d(%c)\n", n->key,
-				col(n), uncle->key, col(uncle));
+				n->color, uncle->key, uncle->color);
 		rotate(tree, newroot, newroot->right == n);
 		n = newroot;
 	} /* Fall through to case 3 */
-	eprintf(">> Case 3: %d(%c), with uncle %d(%c)\n", n->key, col(n),
-			uncle->key, col(uncle));
-	n->parent->color = BLACK;
-	gp->color = RED;
+	eprintf(">> Case 3: %d(%c), with uncle %d(%c)\n", n->key, n->color,
+			uncle->key, uncle->color);
+	n->parent->color = 'b';
+	gp->color = 'r';
 	rotate(tree, gp, gp->left == uncle);
 	/* If root node was changed, update the pointer */
 #ifdef DEBUG
@@ -182,12 +177,12 @@ static void insert_fix(rb_tree tree, rb_node n) {
 		while (realroot->parent != tree->nil)
 			realroot = realroot->parent;
 		eprintf(">> n->parent = %d(%c); root = %d(%c); realroot = %d(%c)\n",
-				n->parent->key, col(n->parent),
-				tree->root->key, col(tree->root),
-				realroot->key, col(realroot));
+				n->parent->key, n->parent->color,
+				tree->root->key, tree->root->color,
+				realroot->key, realroot->color);
 	}
 #endif
-	tree->root->color = BLACK;
+	tree->root->color = 'b';
 }
 
 

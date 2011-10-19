@@ -5,19 +5,24 @@
 
 typedef struct rb_tree *rb_tree;
 
-/* Returns an empty tree */
-rb_tree rb_create();
-/* Inserts the value data into the tree */
-int RBinsert(rb_tree tree, int data);
-/* Finds a certain element */
-int rb_node_exists(rb_tree haystack, int needle);
-/* Deletes an element with a particular key */
+/* Creates an empty Red-Black tree. */
+rb_tree RBcreate();
+/* Frees an entire tree. */
+void RBdestroy(rb_tree tree);
+/* Cleans up. Call this when you won't be using any more Red-Black trees. */
+void RBcleanup();
+
+/* Inserts an element with specified key into tree. */
+int RBinsert(rb_tree tree, int key);
+
+/* Deletes an element with a particular key. */
 int RBdelete(rb_tree tree, int key);
-/* Writes a tree in preorder format to stdout */
+
+/* Writes a tree to stdout in preorder format. */
 void RBwrite(rb_tree tree);
-/* Reads a tree from file RBREADFILE.
- * DOES NOT CHECK to see if this tree is formatted correctly
- * with the blacks and the reds. */
+/* Reads a tree in preorder format from file RBREADFILE.
+ * DOES NOT CHECK to see if this tree is formatted correctly to preserve
+ * red-black properties. */
 rb_tree RBread();
 
 #endif /* RBTREE_H */

@@ -10,8 +10,11 @@
 
 
 
+/******************************************************************************
+ * Section 1: Creation and Deletion
+ ******************************************************************************/
 /* Creates an empty Red-Black tree. */
-rb_tree rb_create() {
+rb_tree RBcreate() {
 	rb_tree ret;
 	if ((ret = malloc(sizeof(*ret))) == NULL) {
 		fprintf(stderr, "Error: out of memory.\n");
@@ -29,26 +32,173 @@ rb_tree rb_create() {
 	ret->root = ret->nil;
 	return ret;
 }
+/* Frees an entire tree. */
+void RBdestroy(rb_tree tree) {
+	rb_delete_subtree(tree, tree->root);
+	rb_free_node(tree->nil);
+	free(tree);
+}
+/* Helper routine: frees a subtree rooted at specified node. */
+static void rb_delete_subtree(rb_tree tree, rb_node node) {
+	if (node == tree->nil) return;
+	rb_delete_subtree(tree, node->lchild);
+	rb_delete_subtree(tree, node->rchild);
+	rb_free_node(node);
+}
+/* Creates a new node, taking from the memory pool if available. */
+static rb_node rb_new_node(rb_tree tree, int data) {
+	rb_node ret;
+	/* If we already have a node on the `heap' */
+	if (rb_mem_pool != NULL) {
+		eprintf("> Allocation: reusing node %d(%c)\n",
+				rb_mem_pool->key, rb_mem_pool->color);
+		ret = rb_mem_pool;
+		rb_mem_pool = ret->parent;
+	} else {
+		eprintf("> Allocation: calling malloc\n");
+		/* Allocate it with malloc() */
+		if ((ret = malloc(sizeof(*ret))) == NULL) {
+			fprintf(stderr, "Error: out of memory.\n");
+			return NULL;
+		}
+	}
+	ret->key = data;
+	ret->parent = tree->nil;
+	ret->lchild = tree->nil;
+	ret->rchild = tree->nil;
+	ret->color = 'r';
+	return ret;
+}
+/* Frees a node to the memory pool. */
+static void rb_free_node(rb_node node) {
+	eprintf("> Deallocating node %i(%c)\n", node->key,
+			node->color);
+	node->parent = rb_mem_pool;
+	rb_mem_pool = node;
+}
+/* Frees entire memory pool. */
+void RBcleanup() {
+	while (rb_mem_pool != NULL) {
+		rb_node cur = rb_mem_pool;
+		eprintf(">Freeing node %i(%c)\n", cur->key, cur->color);
+		rb_mem_pool = cur->parent;
+		free(cur);
+	}
+}
 
-int RBinsert(rb_tree tree, int data) {
-	rb_node newnode = rb_new_node(tree, data);
+
+
+
+
+
+/******************************************************************************
+ * Section 2: Insertion
+ ******************************************************************************/
+/* Inserts an element with specified key into tree. */
+int RBinsert(rb_tree tree, int key) {
+	rb_node newnode = rb_new_node(tree, key);
 	if (newnode == NULL) {
 		return 0;
 	}
 	newnode = rb_unsafe_insert(tree, newnode);
 	if (newnode == NULL) {
 		rb_free_node(newnode);
-		fprintf(stderr, "Error: node %i already in the tree.\n", data);
+		fprintf(stderr, "Error: node %i already in the tree.\n", key);
 		return 0;
 	}
 	rb_insert_fix(tree, newnode);
 	return 1;
 }
+/* Helper routine: acts a binary tree insertion. DOES NOT PRESERVE RED-BLACK
+ * PROPERTIES. */
+static rb_node rb_unsafe_insert(rb_tree tree, rb_node n) {
+	rb_node newparent = tree->nil;
+	rb_node root = tree->root;
+	while (root != tree->nil) {
+		newparent = root;
+		if (n->key < root->key) {
+			root = root->lchild;
+		} else if (n->key > root->key) {
+			root = root->rchild;
+		} else {
+			return NULL;
+		}
+	}
+	eprintf("> Inserting node %d(%c) below %d(%c)\n", n->key,
+			n->color, newparent->key, newparent->color);
+	n->parent = newparent;
+	/* If we inserted a new root into the tree */
+	if (newparent == tree->nil) {
+		tree->root = n;
+	}
+	if (n->key < newparent->key) {
+		newparent->lchild = n;
+	} else {
+		newparent->rchild = n;
+	}
+	return n;
+}
+/* Corrects for properties violated on a single insertion. */
+static void rb_insert_fix(rb_tree tree, rb_node n) {
+	rb_node gp = n->parent->parent,
+		uncle = rb_get_uncle(tree, n);
 
-int rb_node_exists(rb_tree haystack, int needle) {
-	return rb_get_node_by_key(haystack, needle) != haystack->nil;
+	/* Case 1: uncle is colored red */
+	while (n->parent->color == 'r' && uncle->color == 'r') {
+		/* If gp were null, then n->parent would be the root node (or
+		 * tree->nil), and would have to have been black. */
+		eprintf(">> Insertion case 1: %d(%c), with uncle %d(%c)\n", n->key,
+				n->color, uncle->key, uncle->color);
+		gp->color = 'r';
+		uncle->color = 'b';
+		n->parent->color = 'b';
+		n = gp;
+		gp = n->parent->parent;
+		uncle = rb_get_uncle(tree, n);
+	}
+	
+	eprintf(">> Insertion case 1 taken care of, on %d(%c) with parent %d(%c)\n",
+			n->key, n->color, n->parent->key, n->parent->color);
+	if (n->parent->color == 'b') {
+		if (n == tree->root) n->color = 'b';
+		return;
+	}
+
+	/* Case 2: node is "close" to uncle */
+	if ((n->parent->lchild == n) == (gp->lchild == uncle)) {
+		rb_node newroot = n->parent;
+		eprintf(">> Insertion case 2: %d(%c), with uncle %d(%c)\n", n->key,
+				n->color, uncle->key, uncle->color);
+		rb_rotate(tree, newroot, newroot->rchild == n);
+		n = newroot;
+	} /* Fall through to case 3 */
+	eprintf(">> Insertion case 3: %d(%c), with uncle %d(%c)\n", n->key, n->color,
+			uncle->key, uncle->color);
+	n->parent->color = 'b';
+	gp->color = 'r';
+	rb_rotate(tree, gp, gp->lchild == uncle);
+	tree->root->color = 'b';
+}
+/* Helper routine: returns the uncle of a given node. */
+static rb_node rb_get_uncle(rb_tree tree, rb_node n) {
+	rb_node gp;
+	if (n->parent == tree->nil || n->parent->parent == tree->nil) {
+		return tree->nil;
+	}
+	gp = n->parent->parent;
+	return (gp->lchild == n->parent) ? gp->rchild : gp->lchild;
 }
 
+
+
+
+
+
+
+/******************************************************************************
+ * Section 3: Deletion
+ ******************************************************************************/
+/* Deletes an element with a particular key. */
 int RBdelete(rb_tree tree, int key) {
 	rb_node dead = rb_get_node_by_key(tree, key);
 	rb_node replacewith = dead;
@@ -92,156 +242,18 @@ int RBdelete(rb_tree tree, int key) {
 	}
 	return 1;
 }
-
-void RBwrite(rb_tree tree) {
-	if (tree->root == tree->nil) {
-		fprintf(stderr, "Error: empty tree\n");
-	}
-	/* Special case: the first node doesn't have a semicolon before it
-	 * (the others do so that the LAST node doesn't have a semicolon AFTER
-	 * it, as per the instructions */
-	printf("%c, %d", tree->root->color, tree->root->key);
-	rb_preorder_write(tree, tree->root->lchild);
-	rb_preorder_write(tree, tree->root->rchild);
-	putchar('\n');
-}
-
-rb_tree RBread() {
-	rb_tree ret;
-	FILE *infp = fopen(RBREADFILE, "r");
-	if (infp == NULL) {
-		fprintf(stderr, "Error: couldn't read file %s.\n", RBREADFILE);
-		return NULL;
-	}
-	ret = rb_create();
-	if (ret == NULL) {
-		fclose(infp);
-		return NULL;
-	}
-	do {
-		char col;
-		int data;
-		if (fscanf(infp, " %c, %d ", &col, &data) != 2) {
-			fprintf(stderr, "File format error: continuing.\n");
- 		} else if (col != 'b' && col != 'r') {
-			fprintf(stderr, "Invalid node color `%c': skipping.\n", col);
-		} else {
-			rb_node n = rb_new_node(ret, data);
-			eprintf(">> Read node %i(%c)\n", data, col);
-			if (n == NULL) {
-				break;
-			}
-			n->color = col;
-			rb_unsafe_insert(ret, n);
-		}
-	/* skip over semicolon; if it isn't there, we know that input has ended. */
-	} while (getc(infp) == ';');
-	fclose(infp);
-	return ret;
-}
-
-
-
-
-static rb_node rb_new_node(rb_tree tree, int data) {
-	rb_node ret;
-	if ((ret = malloc(sizeof(*ret))) == NULL) {
-		fprintf(stderr, "Error: out of memory.\n");
-		return NULL;
-	}
-	ret->key = data;
-	ret->parent = tree->nil;
-	ret->lchild = tree->nil;
-	ret->rchild = tree->nil;
-	ret->color = 'r';
-	return ret;
-}
-static void rb_free_node(rb_node node) {
-	free(node);
-}
-
-
-
-static rb_node rb_unsafe_insert(rb_tree tree, rb_node n) {
-	rb_node newparent = tree->nil;
-	rb_node root = tree->root;
-	while (root != tree->nil) {
-		newparent = root;
-		if (n->key < root->key) {
-			root = root->lchild;
-		} else if (n->key > root->key) {
-			root = root->rchild;
-		} else {
-			return NULL;
-		}
-	}
-	eprintf("> Inserting node %d(%c) below %d(%c)\n", n->key,
-			n->color, newparent->key, newparent->color);
-	n->parent = newparent;
-	/* If we inserted a new root into the tree */
-	if (newparent == tree->nil) {
-		tree->root = n;
-	}
-	if (n->key < newparent->key) {
-		newparent->lchild = n;
+/* Helper routine: transplants node from into node to's position. */
+static void rb_transplant(rb_tree tree, rb_node to, rb_node from) {
+	if (to->parent == tree->nil) {
+		tree->root = from;
+	} else if (to == to->parent->lchild) {
+		to->parent->lchild = from;
 	} else {
-		newparent->rchild = n;
+		to->parent->rchild = from;
 	}
-	return n;
+	from->parent = to->parent;
 }
-
-static void rb_insert_fix(rb_tree tree, rb_node n) {
-	rb_node gp = n->parent->parent,
-		uncle = rb_get_uncle(tree, n);
-
-	/* Case 1: uncle is colored red */
-	while (n->parent->color == 'r' && uncle->color == 'r') {
-		/* If gp were null, then n->parent would be the root node (or
-		 * tree->nil), and would have to have been black. */
-		eprintf(">> Insertion case 1: %d(%c), with uncle %d(%c)\n", n->key,
-				n->color, uncle->key, uncle->color);
-		gp->color = 'r';
-		uncle->color = 'b';
-		n->parent->color = 'b';
-		n = gp;
-		gp = n->parent->parent;
-		uncle = rb_get_uncle(tree, n);
-	}
-	
-	eprintf(">> Insertion case 1 taken care of, on %d(%c) with parent %d(%c)\n",
-			n->key, n->color, n->parent->key, n->parent->color);
-	if (n->parent->color == 'b') {
-		if (n == tree->root) n->color = 'b';
-		return;
-	}
-
-	/* Case 2: node is "close" to uncle */
-	if ((n->parent->lchild == n) == (gp->lchild == uncle)) {
-		rb_node newroot = n->parent;
-		eprintf(">> Insertion case 2: %d(%c), with uncle %d(%c)\n", n->key,
-				n->color, uncle->key, uncle->color);
-		rb_rotate(tree, newroot, newroot->rchild == n);
-		n = newroot;
-	} /* Fall through to case 3 */
-	eprintf(">> Insertion case 3: %d(%c), with uncle %d(%c)\n", n->key, n->color,
-			uncle->key, uncle->color);
-	n->parent->color = 'b';
-	gp->color = 'r';
-	rb_rotate(tree, gp, gp->lchild == uncle);
-#ifdef DEBUG
-	{
-		rb_node realroot = n;
-		while (realroot->parent != tree->nil)
-			realroot = realroot->parent;
-		eprintf(">> n->parent = %d(%c); root = %d(%c); realroot = %d(%c)\n",
-				n->parent->key, n->parent->color,
-				tree->root->key, tree->root->color,
-				realroot->key, realroot->color);
-	}
-#endif
-	tree->root->color = 'b';
-}
-
+/* Fixes possible violations from node deletion. */
 static void rb_delete_fix(rb_tree tree, rb_node n) {
 	while (n != tree->root && n->color == 'b') {
 		int is_left = n == n->parent->lchild;
@@ -304,6 +316,81 @@ static void rb_delete_fix(rb_tree tree, rb_node n) {
 	n->color = 'b';
 }
 
+
+
+
+
+
+
+
+/******************************************************************************
+ * Section 4: I/O
+ ******************************************************************************/
+/* Writes a tree to stdout in preorder format. */
+void RBwrite(rb_tree tree) {
+	if (tree->root == tree->nil) {
+		fprintf(stderr, "Error: empty tree\n");
+	}
+	/* Special case to account for missing semicolon */
+	printf("%c, %d", tree->root->color, tree->root->key);
+	rb_preorder_write(tree, tree->root->lchild);
+	rb_preorder_write(tree, tree->root->rchild);
+	putchar('\n');
+}
+/* Helper routine: write an entire subtree to stdout. */
+static void rb_preorder_write(rb_tree tree, rb_node n) {
+	if (n == tree->nil) return;
+	printf("; %c, %d", n->color, n->key);
+	rb_preorder_write(tree, n->lchild);
+	rb_preorder_write(tree, n->rchild);
+}
+/* Reads a tree in preorder format from RBREADFILE. */
+rb_tree RBread() {
+	rb_tree ret;
+	FILE *infp = fopen(RBREADFILE, "r");
+	if (infp == NULL) {
+		fprintf(stderr, "Error: couldn't read file %s.\n", RBREADFILE);
+		return NULL;
+	}
+	ret = RBcreate();
+	if (ret == NULL) {
+		fclose(infp);
+		return NULL;
+	}
+	do {
+		char col;
+		int data;
+		if (fscanf(infp, " %c, %d ", &col, &data) != 2) {
+			fprintf(stderr, "File format error: continuing.\n");
+ 		} else if (col != 'b' && col != 'r') {
+			fprintf(stderr, "Invalid node color `%c': skipping.\n", col);
+		} else {
+			rb_node n = rb_new_node(ret, data);
+			eprintf(">> Read node %i(%c)\n", data, col);
+			if (n == NULL) {
+				break;
+			}
+			n->color = col;
+			rb_unsafe_insert(ret, n);
+		}
+	/* skip over semicolon; if it isn't there, we know that input has ended. */
+	} while (getc(infp) == ';');
+	fclose(infp);
+	return ret;
+}
+
+
+
+
+
+
+
+
+
+/******************************************************************************
+ * Section 5: General helper methods
+ ******************************************************************************/
+/* Returns a node with the given key. */
 static rb_node rb_get_node_by_key(rb_tree haystack, int needle) {
 	rb_node root = haystack->root;
 	while (root != haystack->nil) {
@@ -319,25 +406,7 @@ static rb_node rb_get_node_by_key(rb_tree haystack, int needle) {
 	}
 	return haystack->nil;
 }
-
-static void rb_preorder_write(rb_tree tree, rb_node n) {
-	if (n == tree->nil) return;
-	printf("; %c, %d", n->color, n->key);
-	rb_preorder_write(tree, n->lchild);
-	rb_preorder_write(tree, n->rchild);
-}
-
-
-
-static rb_node rb_get_uncle(rb_tree tree, rb_node n) {
-	rb_node gp;
-	if (n->parent == tree->nil || n->parent->parent == tree->nil) {
-		return tree->nil;
-	}
-	gp = n->parent->parent;
-	return (gp->lchild == n->parent) ? gp->rchild : gp->lchild;
-}
-
+/* Rotates a tree around the given root. */
 static void rb_rotate(rb_tree tree, rb_node root, int go_left) {
 	rb_node newroot = (go_left) ? root->rchild : root->lchild;
 
@@ -360,20 +429,9 @@ static void rb_rotate(rb_tree tree, rb_node root, int go_left) {
 		newroot->parent->rchild = newroot;
 	}
 }
-
+/* Returns minimum node in the given subtree. */
 static rb_node rb_min(rb_tree tree, rb_node node) {
 	while (node->lchild != tree->nil)
 		node = node->lchild;
 	return node;
-}
-
-static void rb_transplant(rb_tree tree, rb_node to, rb_node from) {
-	if (to->parent == tree->nil) {
-		tree->root = from;
-	} else if (to == to->parent->lchild) {
-		to->parent->lchild = from;
-	} else {
-		to->parent->rchild = from;
-	}
-	from->parent = to->parent;
 }

@@ -4,7 +4,7 @@
 #define MAX 8
 
 int main(int argc, char *argv[]) {
-	rb_tree root = rb_create();
+	rb_tree root = RBcreate();
 	int i;
 
 	for (i=1; i<=MAX; ++i) {
@@ -22,6 +22,17 @@ int main(int argc, char *argv[]) {
 	}
 
 	RBwrite(root);
+
+	for (i = MAX+1; i <= MAX*2; ++i) {
+		if (!RBinsert(root, i)) {
+			fprintf(stderr, "Error! %i already in the tree.\n", i);
+		}
+	}
+
+	RBwrite(root);
+
+	RBdestroy(root);
+	RBcleanup();
 
 	return 0;
 }

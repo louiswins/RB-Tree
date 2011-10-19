@@ -2,12 +2,6 @@
 #include "RBtree_priv.h"
 #include <stdlib.h>
 #include <stdio.h>
-#ifdef DEBUG
-#	define eprintf(...) fprintf(stderr, __VA_ARGS__)
-#else
-#	define eprintf(...) ((void)0)
-#endif
-
 
 
 /******************************************************************************
@@ -48,20 +42,14 @@ static void rb_delete_subtree(rb_tree tree, rb_node node) {
 /* Creates a new node, taking from the memory pool if available. */
 static rb_node rb_new_node(rb_tree tree, int data) {
 	rb_node ret;
-	/* If we already have a node on the `heap' */
 	if (rb_mem_pool != NULL) {
-		eprintf("> Allocation: reusing node %d(%c)\n",
-				rb_mem_pool->key, rb_mem_pool->color);
 		ret = rb_mem_pool;
 		rb_mem_pool = ret->parent;
 	} else {
-		eprintf("> Allocation: calling malloc\n");
-		/* Allocate it with malloc() */
 		if ((ret = malloc(sizeof(*ret))) == NULL) {
 			fprintf(stderr, "Error: out of memory.\n");
 			return NULL;
 		}
-		eprintf("> malloc successful!\n");
 	}
 	ret->key = data;
 	ret->parent = tree->nil;
@@ -72,8 +60,6 @@ static rb_node rb_new_node(rb_tree tree, int data) {
 }
 /* Frees a node to the memory pool. */
 static void rb_free_node(rb_node node) {
-	eprintf("> Deallocating node %i(%c)\n", node->key,
-			node->color);
 	node->parent = rb_mem_pool;
 	rb_mem_pool = node;
 }
@@ -81,7 +67,6 @@ static void rb_free_node(rb_node node) {
 void RBcleanup() {
 	while (rb_mem_pool != NULL) {
 		rb_node cur = rb_mem_pool;
-		eprintf(">Freeing node %i(%c)\n", cur->key, cur->color);
 		rb_mem_pool = cur->parent;
 		free(cur);
 	}
@@ -125,8 +110,6 @@ static int rb_unsafe_insert(rb_tree tree, rb_node n) {
 			return 0;
 		}
 	}
-	eprintf("> Inserting node %d(%c) below %d(%c)\n", n->key,
-			n->color, newparent->key, newparent->color);
 	n->parent = newparent;
 	/* If we inserted a new root into the tree */
 	if (newparent == tree->nil) {
@@ -146,10 +129,6 @@ static void rb_insert_fix(rb_tree tree, rb_node n) {
 
 	/* Case 1: uncle is colored red */
 	while (n->parent->color == 'r' && uncle->color == 'r') {
-		/* If gp were null, then n->parent would be the root node (or
-		 * tree->nil), and would have to have been black. */
-		eprintf(">> Insertion case 1: %d(%c), with uncle %d(%c)\n", n->key,
-				n->color, uncle->key, uncle->color);
 		gp->color = 'r';
 		uncle->color = 'b';
 		n->parent->color = 'b';
@@ -158,8 +137,6 @@ static void rb_insert_fix(rb_tree tree, rb_node n) {
 		uncle = rb_get_uncle(tree, n);
 	}
 	
-	eprintf(">> Insertion case 1 taken care of, on %d(%c) with parent %d(%c)\n",
-			n->key, n->color, n->parent->key, n->parent->color);
 	if (n->parent->color == 'b') {
 		if (n == tree->root) n->color = 'b';
 		return;
@@ -168,13 +145,9 @@ static void rb_insert_fix(rb_tree tree, rb_node n) {
 	/* Case 2: node is "close" to uncle */
 	if ((n->parent->lchild == n) == (gp->lchild == uncle)) {
 		rb_node newroot = n->parent;
-		eprintf(">> Insertion case 2: %d(%c), with uncle %d(%c)\n", n->key,
-				n->color, uncle->key, uncle->color);
 		rb_rotate(tree, newroot, newroot->rchild == n);
 		n = newroot;
 	} /* Fall through to case 3 */
-	eprintf(">> Insertion case 3: %d(%c), with uncle %d(%c)\n", n->key, n->color,
-			uncle->key, uncle->color);
 	n->parent->color = 'b';
 	gp->color = 'r';
 	rb_rotate(tree, gp, gp->lchild == uncle);
@@ -209,7 +182,6 @@ int RBdelete(rb_tree tree, int key) {
 		fprintf(stderr, "Error: node %i does not exist.\n", key);
 		return 0;
 	}
-	eprintf("> Deleting node %d(%c)\n", dead->key, dead->color);
 
 	if (dead->lchild == tree->nil) {
 		fixit = dead->rchild;
@@ -237,7 +209,6 @@ int RBdelete(rb_tree tree, int key) {
 	/* If the color of replacewith was black, we have a violation of
 	 * property 5, and possibly 4 as well. */
 	if (orig_col == 'b') {
-		eprintf(">> Fixing tree at node %d(%c)\n", fixit->key, fixit->color);
 		rb_delete_fix(tree, fixit);
 	}
 	return 1;
@@ -260,8 +231,6 @@ static void rb_delete_fix(rb_tree tree, rb_node n) {
 		rb_node sibling = (is_left) ? n->parent->rchild : n->parent->lchild;
 		/* Case 1: sibling red */
 		if (sibling->color == 'r') {
-			eprintf(">> Deletion case 1: %d(%c), with sibling %d(%c)\n",
-					n->key, n->color, sibling->key, sibling->color);
 			sibling->color = 'b';
 			sibling->parent->color = 'r';
 			rb_rotate(tree, sibling->parent, is_left);
@@ -269,23 +238,12 @@ static void rb_delete_fix(rb_tree tree, rb_node n) {
 		}
 		/* Case 2: sibling black, both sibling's children black */
 		if (sibling->lchild->color == 'b' && sibling->rchild->color == 'b') {
-			eprintf(">> Deletion case 2: %d(%c), with sibling %d(%c) "
-					"(sibling's kids %d(%c), %d(%c))\n",
-					n->key, n->color, sibling->key, sibling->color,
-					sibling->lchild->key, sibling->lchild->color,
-					sibling->rchild->key, sibling->rchild->color);
-			/* Push the "extra black" up the tree */
 			sibling->color = 'r';
 			n = n->parent;
 		} else {
 			/* Case 3: sibling black, "far" child black */
 			if ((is_left && sibling->rchild->color == 'b') ||
 					(!is_left && sibling->lchild->color == 'b')) {
-				eprintf(">> Deletion case 3: %d(%c), with sibling %d(%c) "
-					"(sibling's kids %d(%c), %d(%c))\n",
-					n->key, n->color, sibling->key, sibling->color,
-					sibling->lchild->key, sibling->lchild->color,
-					sibling->rchild->key, sibling->rchild->color);
 				if (is_left) {
 					sibling->lchild->color = 'b';
 				} else {
@@ -296,11 +254,6 @@ static void rb_delete_fix(rb_tree tree, rb_node n) {
 				sibling = (is_left) ? n->parent->rchild : n->parent->lchild;
 			} /* Fall through to case 4 */
 			/* Case 4: sibling black, "far" child red */
-			eprintf(">> Deletion case 4: %d(%c), with sibling %d(%c) "
-					"(sibling's kids %d(%c), %d(%c))\n",
-					n->key, n->color, sibling->key, sibling->color,
-					sibling->lchild->key, sibling->lchild->color,
-					sibling->rchild->key, sibling->rchild->color);
 			sibling->color = n->parent->color;
 			n->parent->color = 'b';
 			if (is_left) {
@@ -367,7 +320,6 @@ rb_tree RBread() {
 			fprintf(stderr, "Invalid node color `%c': skipping.\n", col);
 		} else {
 			rb_node n = rb_new_node(ret, data);
-			eprintf(">> Read node %i(%c)\n", data, col);
 			if (n == NULL) {
 				break;
 			}
@@ -395,8 +347,6 @@ rb_tree RBread() {
 static rb_node rb_get_node_by_key(rb_tree haystack, int needle) {
 	rb_node root = haystack->root;
 	while (root != haystack->nil) {
-		eprintf(">> Passing through %d(%c)\n", root->key,
-				root->color);
 		if (root->key == needle) {
 			return root;
 		} else if (needle < root->key) {
@@ -448,7 +398,6 @@ void RBdraw(rb_tree tree, char *fname) {
 	FILE *fp;
 	int height = rb_height(tree);
 	int width;
-	eprintf(">> Creating drawing %s, of height %d nodes.\n", fname, height);
 	if (height == 0) return;
 	if ((fp = fopen(fname, "w")) == NULL) {
 		fprintf(stderr, "Error: couldn't open %s for writing.\n", fname);
@@ -456,7 +405,6 @@ void RBdraw(rb_tree tree, char *fname) {
 	}
 	width = pow2(height) * (RADIUS + PADDING);
 	if (width > MAXWIDTH) width = MAXWIDTH;
-	eprintf(">> Opened %s for writing. Tree height = %d, image width = %d.\n", fname, height, width);
 	fprintf(fp, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n"
 		"<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" \"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">\n"
 		"<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" width=\"%dpx\" height=\"%dpx\" "
@@ -464,7 +412,6 @@ void RBdraw(rb_tree tree, char *fname) {
 		width, height * (2*RADIUS + PADDING) + PADDING);
 	rb_draw_subtree(fp, tree, tree->root, 0, width - RADIUS - PADDING, RADIUS+PADDING);
 	fputs("</svg>\n", fp);
-	eprintf(">> Finished drawing %s.\n", fname);
 	fclose(fp);
 }
 /* Draws a subtree rooted at a given node between the x-coordinates l and r,

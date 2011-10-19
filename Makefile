@@ -1,5 +1,5 @@
 ZIPFILE = P2-Wilson-Louis.zip
-CFLAGS += -Wall -Wno-variadic-macros -pedantic
+CFLAGS += -Wall -pedantic
 
 all: run
 

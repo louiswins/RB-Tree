@@ -2,19 +2,22 @@
 #include <stdio.h>
 #include <ctype.h>
 
+#define READFILE "RBinput.txt"
+#define DRAWING "RBdrawing.svg"
 
 void help() {
 	printf(
-"Louis Wilson's Project #2\n"
+"Louis Wilson's CSE310 Project #2\n"
 "Commands:\n"
 "\tC   - Create empty tree\n"
-"\tR   - Read tree from RBinput.txt\n"
+"\tR   - Read tree from %s\n"
 "\tW   - Write tree to screen in preorder format\n"
 "\tI n - Insert node with key `n' into tree\n"
 "\tD n - Delete node with key `n' from tree\n"
-"\tT   - draw Tree in RBdrawing.svg\n"
+"\tT   - draw Tree in %s\n"
 "\tH   - Help\n"
-"\tQ   - Quit (you may also use Ctrl-D)\n");
+"\tQ   - Quit (you may also use Ctrl-D)\n",
+READFILE, DRAWING);
 }
 
 int main(int argc, char *argv[]) {
@@ -90,7 +93,7 @@ int main(int argc, char *argv[]) {
 				if (tree == NULL) {
 					fprintf(stderr, "Error: no tree loaded, cannot draw.\n");
 				} else {
-					RBdraw(tree, "RBdrawing.svg");
+					RBdraw(tree, DRAWING);
 				}
 				break;
 			case 'H':

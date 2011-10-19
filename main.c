@@ -1,18 +1,7 @@
 #include "RBtree.h"
 #include <stdio.h>
 
-#define MAX 50
-
-static void checktree(rb_tree tree) {
-	int i;
-	for (i=0; i<=MAX+1; ++i) {
-		if (rb_node_exists(tree, i)) {
-			printf("%d is in the tree.\n", i);
-		} else {
-			printf("%d is NOT in the tree.\n", i);
-		}
-	}
-}
+#define MAX 8
 
 int main(int argc, char *argv[]) {
 	rb_tree root = rb_create();
@@ -24,7 +13,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	checktree(root);
+	RBwrite(root);
 
 	for (i = 1; i <= MAX; i += 2) {
 		if (!RBdelete(root, i)) {
@@ -32,7 +21,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	checktree(root);
+	RBwrite(root);
 
 	return 0;
 }

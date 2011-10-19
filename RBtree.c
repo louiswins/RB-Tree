@@ -1,9 +1,8 @@
 #include "RBtree.h"
 #include "RBtree_priv.h"
-
 #include <stdlib.h>
+#include <stdio.h>
 #ifdef DEBUG
-#	include <stdio.h>
 #	define eprintf(...) fprintf(stderr, __VA_ARGS__)
 #else
 #	define eprintf(...) ((void)0)
@@ -26,31 +25,9 @@ rb_tree rb_create() {
 }
 
 int RBinsert(rb_tree tree, int data) {
-	rb_node newparent = tree->nil;
-	rb_node root = tree->root;
-	rb_node newnode;
-	while (root != tree->nil) {
-		newparent = root;
-		if (data < root->key) {
-			root = root->lchild;
-		} else if (data > root->key) {
-			root = root->rchild;
-		} else {
-			return 0;
-		}
-	}
-	newnode = rb_new_node(tree, data);
-	eprintf("> Inserting node %d(%c) below %d(%c)\n", newnode->key,
-			newnode->color, newparent->key, newparent->color);
-	newnode->parent = newparent;
-	/* If we inserted a new root into the tree */
-	if (newparent == tree->nil) {
-		tree->root = newnode;
-	}
-	if (data < newparent->key) {
-		newparent->lchild = newnode;
-	} else {
-		newparent->rchild = newnode;
+	rb_node newnode = rb_unsafe_insert(tree, data);
+	if (newnode == NULL) {
+		return 0;
 	}
 	rb_insert_fix(tree, newnode);
 	return 1;
@@ -96,12 +73,17 @@ int RBdelete(rb_tree tree, int key) {
 	}
 	rb_free_node(dead);
 	/* If the color of replacewith was black, we have a violation of
-	 * property 5, and possible 4 as well. */
+	 * property 5, and possibly 4 as well. */
 	if (orig_col == 'b') {
 		eprintf(">> Fixing tree at node %d(%c)\n", fixit->key, fixit->color);
 		rb_delete_fix(tree, fixit);
 	}
 	return 1;
+}
+
+void RBwrite(rb_tree tree) {
+	rb_preorder_write(tree, tree->root);
+	putchar('\n');
 }
 
 
@@ -125,6 +107,35 @@ static void rb_free_node(rb_node node) {
 
 
 
+static rb_node rb_unsafe_insert(rb_tree tree, int data) {
+	rb_node newparent = tree->nil;
+	rb_node root = tree->root;
+	rb_node newnode;
+	while (root != tree->nil) {
+		newparent = root;
+		if (data < root->key) {
+			root = root->lchild;
+		} else if (data > root->key) {
+			root = root->rchild;
+		} else {
+			return NULL;
+		}
+	}
+	newnode = rb_new_node(tree, data);
+	eprintf("> Inserting node %d(%c) below %d(%c)\n", newnode->key,
+			newnode->color, newparent->key, newparent->color);
+	newnode->parent = newparent;
+	/* If we inserted a new root into the tree */
+	if (newparent == tree->nil) {
+		tree->root = newnode;
+	}
+	if (data < newparent->key) {
+		newparent->lchild = newnode;
+	} else {
+		newparent->rchild = newnode;
+	}
+	return newnode;
+}
 
 static void rb_insert_fix(rb_tree tree, rb_node n) {
 	rb_node gp = n->parent->parent,
@@ -256,6 +267,12 @@ static rb_node rb_get_node_by_key(rb_tree haystack, int needle) {
 	return haystack->nil;
 }
 
+static void rb_preorder_write(rb_tree tree, rb_node n) {
+	if (n == tree->nil) return;
+	printf("%c, %d; ", n->color, n->key);
+	rb_preorder_write(tree, n->lchild);
+	rb_preorder_write(tree, n->rchild);
+}
 
 
 

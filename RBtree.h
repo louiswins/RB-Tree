@@ -11,5 +11,7 @@ int RBinsert(rb_tree tree, int data);
 int rb_node_exists(rb_tree haystack, int needle);
 /* Deletes an element with a particular key */
 int RBdelete(rb_tree tree, int key);
+/* Writes a tree in preorder format to stdout */
+void RBwrite(rb_tree tree);
 
 #endif /* RBTREE_H */

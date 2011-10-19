@@ -25,8 +25,15 @@ rb_tree rb_create() {
 }
 
 int RBinsert(rb_tree tree, int data) {
-	rb_node newnode = rb_unsafe_insert(tree, data);
+	rb_node newnode = rb_new_node(tree, data);
 	if (newnode == NULL) {
+		fprintf(stderr, "Error: out of memory.\n");
+		return 0;
+	}
+	newnode = rb_unsafe_insert(tree, newnode);
+	if (newnode == NULL) {
+		rb_free_node(newnode);
+		fprintf(stderr, "Error: node %i already in the tree.\n", data);
 		return 0;
 	}
 	rb_insert_fix(tree, newnode);
@@ -44,7 +51,7 @@ int RBdelete(rb_tree tree, int key) {
 	char orig_col = replacewith->color;
 	/* Node does not exist, so we cannot delete it */
 	if (dead == tree->nil) {
-		eprintf("Cannot delete %i, it does not exist.\n", key);
+		fprintf(stderr, "Error: node %i does not exist.\n", key);
 		return 0;
 	}
 	eprintf("> Deleting node %d(%c)\n", dead->key, dead->color);
@@ -82,10 +89,43 @@ int RBdelete(rb_tree tree, int key) {
 }
 
 void RBwrite(rb_tree tree) {
-	rb_preorder_write(tree, tree->root);
-	putchar('\n');
+	rb_node prev = rb_preorder_write(tree, tree->root, NULL);
+	if (prev != NULL)
+		printf("%c, %d\n", prev->color, prev->key);
 }
 
+rb_tree RBread() {
+	rb_tree ret;
+	FILE *infp = fopen(RBREADFILE, "r");
+	if (infp == NULL) {
+		fprintf(stderr, "Error: couldn't read file %s.\n", RBREADFILE);
+		return NULL;
+	}
+	ret = rb_create();
+	if (ret == NULL) {
+		fclose(infp);
+		fprintf(stderr, "Error: out of memory.\n");
+		return NULL;
+	}
+	do {
+		char col;
+		int data;
+		if (fscanf(infp, " %c, %d", &col, &data) != 2 || (col != 'b' && col != 'r')) {
+			fprintf(stderr, "File format error: continuing...\n");
+		} else {
+			rb_node n = rb_new_node(ret, data);
+			if (n == NULL) {
+				fprintf(stderr, "Error: out of memory.\n");
+				break;
+			}
+			n->color = col;
+			rb_unsafe_insert(ret, n);
+		}
+	/* skip over semicolon; if it isn't there, we know that input has ended. */
+	} while (getchar() == ';');
+	fclose(infp);
+	return ret;
+}
 
 
 
@@ -107,34 +147,32 @@ static void rb_free_node(rb_node node) {
 
 
 
-static rb_node rb_unsafe_insert(rb_tree tree, int data) {
+static rb_node rb_unsafe_insert(rb_tree tree, rb_node n) {
 	rb_node newparent = tree->nil;
 	rb_node root = tree->root;
-	rb_node newnode;
 	while (root != tree->nil) {
 		newparent = root;
-		if (data < root->key) {
+		if (n->key < root->key) {
 			root = root->lchild;
-		} else if (data > root->key) {
+		} else if (n->key > root->key) {
 			root = root->rchild;
 		} else {
 			return NULL;
 		}
 	}
-	newnode = rb_new_node(tree, data);
-	eprintf("> Inserting node %d(%c) below %d(%c)\n", newnode->key,
-			newnode->color, newparent->key, newparent->color);
-	newnode->parent = newparent;
+	eprintf("> Inserting node %d(%c) below %d(%c)\n", n->key,
+			n->color, newparent->key, newparent->color);
+	n->parent = newparent;
 	/* If we inserted a new root into the tree */
 	if (newparent == tree->nil) {
-		tree->root = newnode;
+		tree->root = n;
 	}
-	if (data < newparent->key) {
-		newparent->lchild = newnode;
+	if (n->key < newparent->key) {
+		newparent->lchild = n;
 	} else {
-		newparent->rchild = newnode;
+		newparent->rchild = n;
 	}
-	return newnode;
+	return n;
 }
 
 static void rb_insert_fix(rb_tree tree, rb_node n) {
@@ -267,11 +305,12 @@ static rb_node rb_get_node_by_key(rb_tree haystack, int needle) {
 	return haystack->nil;
 }
 
-static void rb_preorder_write(rb_tree tree, rb_node n) {
-	if (n == tree->nil) return;
-	printf("%c, %d; ", n->color, n->key);
-	rb_preorder_write(tree, n->lchild);
-	rb_preorder_write(tree, n->rchild);
+static rb_node rb_preorder_write(rb_tree tree, rb_node n, rb_node prev) {
+	if (n == tree->nil) return prev;
+	if (prev != NULL)
+		printf("%c, %d; ", prev->color, prev->key);
+	prev = rb_preorder_write(tree, n->lchild, n);
+	return rb_preorder_write(tree, n->rchild, prev);
 }
 
 

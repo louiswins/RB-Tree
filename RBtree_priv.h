@@ -4,8 +4,8 @@
 typedef struct rb_node {
 	int key;
 	struct rb_node *parent;
-	struct rb_node *left,
-		       *right;
+	struct rb_node *lchild,
+		       *rchild;
 	char color;
 } *rb_node;
 struct rb_tree {

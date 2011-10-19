@@ -32,9 +32,9 @@ int rb_insert(rb_tree tree, int data) {
 	while (root != tree->nil) {
 		newparent = root;
 		if (data < root->key) {
-			root = root->left;
+			root = root->lchild;
 		} else if (data > root->key) {
-			root = root->right;
+			root = root->rchild;
 		} else {
 			return 0;
 		}
@@ -48,9 +48,9 @@ int rb_insert(rb_tree tree, int data) {
 		tree->root = newnode;
 	}
 	if (data < newparent->key) {
-		newparent->left = newnode;
+		newparent->lchild = newnode;
 	} else {
-		newparent->right = newnode;
+		newparent->rchild = newnode;
 	}
 	insert_fix(tree, newnode);
 	return 1;
@@ -63,7 +63,7 @@ int rb_node_exists(rb_tree haystack, int needle) {
 int rb_delete(rb_tree tree, int key) {
 	rb_node dead = get_node_by_key(tree, key);
 	rb_node newpos = tree->nil;
-	if (dead->left == tree->nil || dead->right == tree->nil) {
+	if (dead->lchild == tree->nil || dead->rchild == tree->nil) {
 		newpos = dead;
 	} else {
 		newpos = successor(tree, dead);
@@ -80,14 +80,14 @@ int rb_delete(rb_tree tree, int key) {
 
 static void delete_fix(rb_tree root, rb_node n) {}
 static rb_node successor(rb_tree tree, rb_node node) {
-	if (node->right != tree->nil) {
-		node = node->right;
-		while (node->left != tree->nil)
-			node = node->left;
+	if (node->rchild != tree->nil) {
+		node = node->rchild;
+		while (node->lchild != tree->nil)
+			node = node->lchild;
 		return node;
 	} else {
 		rb_node ret = node->parent;
-		while (ret != tree->nil && ret->right == node) {
+		while (ret != tree->nil && ret->rchild == node) {
 			node = ret;
 			ret = ret->parent;
 		}
@@ -102,9 +102,9 @@ static rb_node get_node_by_key(rb_tree haystack, int needle) {
 		if (root->key == needle) {
 			return root;
 		} else if (needle < root->key) {
-			root = root->left;
+			root = root->lchild;
 		} else {
-			root = root->right;
+			root = root->rchild;
 		}
 	}
 	return haystack->nil;
@@ -116,8 +116,8 @@ static rb_node rb_new_node(rb_tree tree, int data) {
 		return NULL;
 	ret->key = data;
 	ret->parent = tree->nil;
-	ret->left = tree->nil;
-	ret->right = tree->nil;
+	ret->lchild = tree->nil;
+	ret->rchild = tree->nil;
 	ret->color = 'r';
 	return ret;
 }
@@ -130,7 +130,7 @@ static rb_node get_uncle(rb_tree tree, rb_node n) {
 		return tree->nil;
 	}
 	gp = n->parent->parent;
-	return (gp->left == n->parent) ? gp->right : gp->left;
+	return (gp->lchild == n->parent) ? gp->rchild : gp->lchild;
 }
 static void insert_fix(rb_tree tree, rb_node n) {
 	rb_node gp = n->parent->parent,
@@ -158,18 +158,18 @@ static void insert_fix(rb_tree tree, rb_node n) {
 	}
 
 	/* Case 2: node is "close" to uncle */
-	if ((n->parent->left == n) == (gp->left == uncle)) {
+	if ((n->parent->lchild == n) == (gp->lchild == uncle)) {
 		rb_node newroot = n->parent;
 		eprintf(">> Case 2: %d(%c), with uncle %d(%c)\n", n->key,
 				n->color, uncle->key, uncle->color);
-		rotate(tree, newroot, newroot->right == n);
+		rotate(tree, newroot, newroot->rchild == n);
 		n = newroot;
 	} /* Fall through to case 3 */
 	eprintf(">> Case 3: %d(%c), with uncle %d(%c)\n", n->key, n->color,
 			uncle->key, uncle->color);
 	n->parent->color = 'b';
 	gp->color = 'r';
-	rotate(tree, gp, gp->left == uncle);
+	rotate(tree, gp, gp->lchild == uncle);
 	/* If root node was changed, update the pointer */
 #ifdef DEBUG
 	{
@@ -187,24 +187,24 @@ static void insert_fix(rb_tree tree, rb_node n) {
 
 
 static void rotate(rb_tree tree, rb_node root, int go_left) {
-	rb_node newroot = (go_left) ? root->right : root->left;
+	rb_node newroot = (go_left) ? root->rchild : root->lchild;
 
 	if (go_left) {
-		root->right = newroot->left;
-		root->right->parent = root;
-		newroot->left = root;
+		root->rchild = newroot->lchild;
+		root->rchild->parent = root;
+		newroot->lchild = root;
 	} else {
-		root->left = newroot->right;
-		root->left->parent = root;
-		newroot->right = root;
+		root->lchild = newroot->rchild;
+		root->lchild->parent = root;
+		newroot->rchild = root;
 	}
 	newroot->parent = root->parent;
 	root->parent = newroot;
 	if (newroot->parent == tree->nil) {
 		tree->root = newroot;
-	} else if (newroot->parent->left == root) {
-		newroot->parent->left = newroot;
+	} else if (newroot->parent->lchild == root) {
+		newroot->parent->lchild = newroot;
 	} else {
-		newroot->parent->right = newroot;
+		newroot->parent->rchild = newroot;
 	}
 }

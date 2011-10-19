@@ -41,7 +41,7 @@ int RBinsert(rb_tree tree, int data) {
 	}
 	newnode = rb_new_node(tree, data);
 	eprintf("> Inserting node %d(%c) below %d(%c)\n", newnode->key,
-			newnode->color, newparent->key, newparen->color);
+			newnode->color, newparent->key, newparent->color);
 	newnode->parent = newparent;
 	/* If we inserted a new root into the tree */
 	if (newparent == tree->nil) {
@@ -52,63 +52,61 @@ int RBinsert(rb_tree tree, int data) {
 	} else {
 		newparent->rchild = newnode;
 	}
-	insert_fix(tree, newnode);
+	rb_insert_fix(tree, newnode);
 	return 1;
 }
 
 int rb_node_exists(rb_tree haystack, int needle) {
-	return get_node_by_key(haystack, needle) != haystack->nil;
+	return rb_get_node_by_key(haystack, needle) != haystack->nil;
 }
 
 int RBdelete(rb_tree tree, int key) {
-	rb_node dead = get_node_by_key(tree, key);
-	rb_node newpos = tree->nil;
-	if (dead->lchild == tree->nil || dead->rchild == tree->nil) {
-		newpos = dead;
-	} else {
-		newpos = successor(tree, dead);
+	rb_node dead = rb_get_node_by_key(tree, key);
+	rb_node replacewith = dead;
+	rb_node fixit;
+	char orig_col = replacewith->color;
+	/* Node does not exist, so we cannot delete it */
+	if (dead == tree->nil) {
+		eprintf("Cannot delete %i, it does not exist.\n", key);
+		return 0;
 	}
-	return 0;
-	/* XXX */
-}
+	eprintf("> Deleting node %d(%c)\n", dead->key, dead->color);
 
-
-
-
-
-
-
-static void delete_fix(rb_tree root, rb_node n) {}
-static rb_node successor(rb_tree tree, rb_node node) {
-	if (node->rchild != tree->nil) {
-		node = node->rchild;
-		while (node->lchild != tree->nil)
-			node = node->lchild;
-		return node;
+	if (dead->lchild == tree->nil) {
+		fixit = dead->rchild;
+		rb_transplant(tree, dead, dead->rchild);
+	} else if (dead->rchild == tree->nil) {
+		fixit = dead->lchild;
+		rb_transplant(tree, dead, dead->lchild);
 	} else {
-		rb_node ret = node->parent;
-		while (ret != tree->nil && ret->rchild == node) {
-			node = ret;
-			ret = ret->parent;
-		}
-		return ret;
-	}
-}
-static rb_node get_node_by_key(rb_tree haystack, int needle) {
-	rb_node root = haystack->root;
-	while (root != haystack->nil) {
-		eprintf(">> Passing through %d(%c)\n", root->key,
-				root->color);
-		if (root->key == needle) {
-			return root;
-		} else if (needle < root->key) {
-			root = root->lchild;
+		replacewith = rb_min(tree, dead->rchild);
+		orig_col = replacewith->color;
+		fixit = replacewith->rchild;
+		if (replacewith->parent == dead) {
+			fixit->parent = replacewith;
 		} else {
-			root = root->rchild;
+			rb_transplant(tree, replacewith, replacewith->rchild);
+			replacewith->rchild = dead->rchild;
+			replacewith->rchild->parent = replacewith;
 		}
+		rb_transplant(tree, dead, replacewith);
+		replacewith->lchild = dead->lchild;
+		replacewith->lchild->parent = replacewith;
+		replacewith->color = dead->color;
 	}
-	return haystack->nil;
+	rb_free_node(dead);
+	/* If the color of replacewith was black, we have a violation of
+	 * property 5, and possible 4 as well. */
+	if (orig_col == 'b') {
+		eprintf(">> Fixing tree at node %d(%c)\n", fixit->key, fixit->color);
+		rb_delete_fix(tree, fixit);
+	}
+	return 1;
 }
+
+
+
+
 
 static rb_node rb_new_node(rb_tree tree, int data) {
 	rb_node ret;
@@ -124,33 +122,29 @@ static rb_node rb_new_node(rb_tree tree, int data) {
 static void rb_free_node(rb_node node) {
 	free(node);
 }
-static rb_node get_uncle(rb_tree tree, rb_node n) {
-	rb_node gp;
-	if (n->parent == tree->nil || n->parent->parent == tree->nil) {
-		return tree->nil;
-	}
-	gp = n->parent->parent;
-	return (gp->lchild == n->parent) ? gp->rchild : gp->lchild;
-}
-static void insert_fix(rb_tree tree, rb_node n) {
+
+
+
+
+static void rb_insert_fix(rb_tree tree, rb_node n) {
 	rb_node gp = n->parent->parent,
-		uncle = get_uncle(tree, n);
+		uncle = rb_get_uncle(tree, n);
 
 	/* Case 1: uncle is colored red */
 	while (n->parent->color == 'r' && uncle->color == 'r') {
 		/* If gp were null, then n->parent would be the root node (or
 		 * tree->nil), and would have to have been black. */
-		eprintf(">> Case 1: %d(%c), with uncle %d(%c)\n", n->key,
+		eprintf(">> Insertion case 1: %d(%c), with uncle %d(%c)\n", n->key,
 				n->color, uncle->key, uncle->color);
 		gp->color = 'r';
 		uncle->color = 'b';
 		n->parent->color = 'b';
 		n = gp;
 		gp = n->parent->parent;
-		uncle = get_uncle(tree, n);
+		uncle = rb_get_uncle(tree, n);
 	}
 	
-	eprintf(">> Case 1 taken care of, on %d(%c) with parent %d(%c)\n",
+	eprintf(">> Insertion case 1 taken care of, on %d(%c) with parent %d(%c)\n",
 			n->key, n->color, n->parent->key, n->parent->color);
 	if (n->parent->color == 'b') {
 		if (n == tree->root) n->color = 'b';
@@ -160,17 +154,16 @@ static void insert_fix(rb_tree tree, rb_node n) {
 	/* Case 2: node is "close" to uncle */
 	if ((n->parent->lchild == n) == (gp->lchild == uncle)) {
 		rb_node newroot = n->parent;
-		eprintf(">> Case 2: %d(%c), with uncle %d(%c)\n", n->key,
+		eprintf(">> Insertion case 2: %d(%c), with uncle %d(%c)\n", n->key,
 				n->color, uncle->key, uncle->color);
-		rotate(tree, newroot, newroot->rchild == n);
+		rb_rotate(tree, newroot, newroot->rchild == n);
 		n = newroot;
 	} /* Fall through to case 3 */
-	eprintf(">> Case 3: %d(%c), with uncle %d(%c)\n", n->key, n->color,
+	eprintf(">> Insertion case 3: %d(%c), with uncle %d(%c)\n", n->key, n->color,
 			uncle->key, uncle->color);
 	n->parent->color = 'b';
 	gp->color = 'r';
-	rotate(tree, gp, gp->lchild == uncle);
-	/* If root node was changed, update the pointer */
+	rb_rotate(tree, gp, gp->lchild == uncle);
 #ifdef DEBUG
 	{
 		rb_node realroot = n;
@@ -185,8 +178,97 @@ static void insert_fix(rb_tree tree, rb_node n) {
 	tree->root->color = 'b';
 }
 
+static void rb_delete_fix(rb_tree tree, rb_node n) {
+	while (n != tree->root && n->color == 'b') {
+		int is_left = n == n->parent->lchild;
+		rb_node sibling = (is_left) ? n->parent->rchild : n->parent->lchild;
+		/* Case 1: sibling red */
+		if (sibling->color == 'r') {
+			eprintf(">> Deletion case 1: %d(%c), with sibling %d(%c)\n",
+					n->key, n->color, sibling->key, sibling->color);
+			sibling->color = 'b';
+			sibling->parent->color = 'r';
+			rb_rotate(tree, sibling->parent, is_left);
+			sibling = (is_left) ? n->parent->rchild : n->parent->rchild;
+		}
+		/* Case 2: sibling black, both sibling's children black */
+		if (sibling->lchild->color == 'b' && sibling->rchild->color == 'b') {
+			eprintf(">> Deletion case 2: %d(%c), with sibling %d(%c) "
+					"(sibling's kids %d(%c), %d(%c))\n",
+					n->key, n->color, sibling->key, sibling->color,
+					sibling->lchild->key, sibling->lchild->color,
+					sibling->rchild->key, sibling->rchild->color);
+			/* Push the "extra black" up the tree */
+			sibling->color = 'r';
+			n = n->parent;
+		} else {
+			/* Case 3: sibling black, "far" child black */
+			if ((is_left && sibling->rchild->color == 'b') ||
+					(!is_left && sibling->lchild->color == 'b')) {
+				eprintf(">> Deletion case 3: %d(%c), with sibling %d(%c) "
+					"(sibling's kids %d(%c), %d(%c))\n",
+					n->key, n->color, sibling->key, sibling->color,
+					sibling->lchild->key, sibling->lchild->color,
+					sibling->rchild->key, sibling->rchild->color);
+				if (is_left) {
+					sibling->lchild->color = 'b';
+				} else {
+					sibling->rchild->color = 'b';
+				}
+				sibling->color = 'r';
+				rb_rotate(tree, sibling, !is_left);
+				sibling = (is_left) ? n->parent->rchild : n->parent->lchild;
+			} /* Fall through to case 4 */
+			/* Case 4: sibling black, "far" child red */
+			eprintf(">> Deletion case 4: %d(%c), with sibling %d(%c) "
+					"(sibling's kids %d(%c), %d(%c))\n",
+					n->key, n->color, sibling->key, sibling->color,
+					sibling->lchild->key, sibling->lchild->color,
+					sibling->rchild->key, sibling->rchild->color);
+			sibling->color = n->parent->color;
+			n->parent->color = 'b';
+			if (is_left) {
+				sibling->rchild->color = 'b';
+			} else {
+				sibling->lchild->color = 'b';
+			}
+			rb_rotate(tree, n->parent, is_left);
+			/* We're done, so set n to the root node */
+			n = tree->root;
+		}
+	}
+	n->color = 'b';
+}
 
-static void rotate(rb_tree tree, rb_node root, int go_left) {
+static rb_node rb_get_node_by_key(rb_tree haystack, int needle) {
+	rb_node root = haystack->root;
+	while (root != haystack->nil) {
+		eprintf(">> Passing through %d(%c)\n", root->key,
+				root->color);
+		if (root->key == needle) {
+			return root;
+		} else if (needle < root->key) {
+			root = root->lchild;
+		} else {
+			root = root->rchild;
+		}
+	}
+	return haystack->nil;
+}
+
+
+
+
+static rb_node rb_get_uncle(rb_tree tree, rb_node n) {
+	rb_node gp;
+	if (n->parent == tree->nil || n->parent->parent == tree->nil) {
+		return tree->nil;
+	}
+	gp = n->parent->parent;
+	return (gp->lchild == n->parent) ? gp->rchild : gp->lchild;
+}
+
+static void rb_rotate(rb_tree tree, rb_node root, int go_left) {
 	rb_node newroot = (go_left) ? root->rchild : root->lchild;
 
 	if (go_left) {
@@ -207,4 +289,21 @@ static void rotate(rb_tree tree, rb_node root, int go_left) {
 	} else {
 		newroot->parent->rchild = newroot;
 	}
+}
+
+static rb_node rb_min(rb_tree tree, rb_node node) {
+	while (node->lchild != tree->nil)
+		node = node->lchild;
+	return node;
+}
+
+static void rb_transplant(rb_tree tree, rb_node to, rb_node from) {
+	if (to->parent == tree->nil) {
+		tree->root = from;
+	} else if (to == to->parent->lchild) {
+		to->parent->lchild = from;
+	} else {
+		to->parent->rchild = from;
+	}
+	from->parent = to->parent;
 }

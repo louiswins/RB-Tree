@@ -9,4 +9,7 @@ This program is written using C.
 To compile, simply type `make' at the command line. This creates an executable
 called `run'.
 
-To create a zip file, type `make zip'. The makefile requires GNU Make.
+One additional feature implemented was the `draw' command. This creates a
+Scalable Vector Graphics image. It can be converted to a more traditional image
+format (such as PNG) with several programs, such as ImageMagick's `convert'.
+(See http://www.imagemagick.org/script/index.php.)

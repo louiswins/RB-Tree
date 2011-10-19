@@ -25,6 +25,7 @@ void RBwrite(rb_tree tree);
  * red-black properties. */
 rb_tree RBread();
 
+/* Draws an SVG picture of the tree in the specified file. */
 void RBdraw(rb_tree tree, char *fname);
 
 #endif /* RBTREE_H */

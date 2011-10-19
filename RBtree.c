@@ -61,6 +61,7 @@ static rb_node rb_new_node(rb_tree tree, int data) {
 			fprintf(stderr, "Error: out of memory.\n");
 			return NULL;
 		}
+		eprintf("> malloc successful!\n");
 	}
 	ret->key = data;
 	ret->parent = tree->nil;
@@ -101,8 +102,7 @@ int RBinsert(rb_tree tree, int key) {
 	if (newnode == NULL) {
 		return 0;
 	}
-	newnode = rb_unsafe_insert(tree, newnode);
-	if (newnode == NULL) {
+	if (!rb_unsafe_insert(tree, newnode)) {
 		rb_free_node(newnode);
 		fprintf(stderr, "Error: node %i already in the tree.\n", key);
 		return 0;
@@ -112,7 +112,7 @@ int RBinsert(rb_tree tree, int key) {
 }
 /* Helper routine: acts a binary tree insertion. DOES NOT PRESERVE RED-BLACK
  * PROPERTIES. */
-static rb_node rb_unsafe_insert(rb_tree tree, rb_node n) {
+static int rb_unsafe_insert(rb_tree tree, rb_node n) {
 	rb_node newparent = tree->nil;
 	rb_node root = tree->root;
 	while (root != tree->nil) {
@@ -122,7 +122,7 @@ static rb_node rb_unsafe_insert(rb_tree tree, rb_node n) {
 		} else if (n->key > root->key) {
 			root = root->rchild;
 		} else {
-			return NULL;
+			return 0;
 		}
 	}
 	eprintf("> Inserting node %d(%c) below %d(%c)\n", n->key,
@@ -137,7 +137,7 @@ static rb_node rb_unsafe_insert(rb_tree tree, rb_node n) {
 	} else {
 		newparent->rchild = n;
 	}
-	return n;
+	return 1;
 }
 /* Corrects for properties violated on a single insertion. */
 static void rb_insert_fix(rb_tree tree, rb_node n) {
@@ -439,20 +439,35 @@ static rb_node rb_min(rb_tree tree, rb_node node) {
 
 
 
-#define RADIUS 20
-#define PADDING 10
-#define MAXWIDTH 1000
-/* Computes 2^h without linking -lm */
-static int pow2(int e) {
-	int ret = 1, base = 2;
-	while (e) {
-		if (e & 1)
-			ret *= base;
-		e >>= 1;
-		base *= base;
+/******************************************************************************
+ * Section 6: SVG
+ ******************************************************************************/
+/* Draws an SVG picture of the tree in the specified file. */
+void RBdraw(rb_tree tree, char *fname) {
+	FILE *fp;
+	int height = rb_height(tree);
+	int width;
+	eprintf(">> Creating drawing %s, of height %d nodes.\n", fname, height);
+	if (height == 0) return;
+	if ((fp = fopen(fname, "w")) == NULL) {
+		fprintf(stderr, "Error: couldn't open %s for writing.\n", fname);
+		return;
 	}
-	return ret;
+	width = pow2(height) * (RADIUS + PADDING);
+	if (width > MAXWIDTH) width = MAXWIDTH;
+	eprintf(">> Opened %s for writing. Tree height = %d, image width = %d.\n", fname, height, width);
+	fprintf(fp, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n"
+		"<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" \"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">\n"
+		"<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" width=\"%dpx\" height=\"%dpx\" "
+		"style=\"background-color:white\">\n",
+		width, height * (2*RADIUS + PADDING) + PADDING);
+	rb_draw_subtree(fp, tree, tree->root, 0, width - RADIUS - PADDING, RADIUS+PADDING);
+	fputs("</svg>\n", fp);
+	eprintf(">> Finished drawing %s.\n", fname);
+	fclose(fp);
 }
+/* Draws a subtree rooted at a given node between the x-coordinates l and r,
+ * starting at height h. */
 static void rb_draw_subtree(FILE *fp, rb_tree tree, rb_node n, int l, int r, int h) {
 	char *col = (n->color == 'b') ? "black" : "red";
 	int mid = (l+r)/2;
@@ -471,7 +486,14 @@ static void rb_draw_subtree(FILE *fp, rb_tree tree, rb_node n, int l, int r, int
 	}
 	fprintf(fp, "<circle cx=\"%d\" cy=\"%d\" r=\"%d\" stroke=\"black\" "
 		"stroke-width=\"2\" fill=\"%s\"/>\n", (l+r)/2, h, RADIUS, col);
+	fprintf(fp, "<text x=\"%d\" y=\"%d\" fill=\"white\" text-anchor=\"middle\" "
+		"dy=\"0.5ex\">%d</text>\n", (l+r)/2, h, n->key);
 }
+/* Computes height of a tree. */
+static int rb_height(rb_tree tree) {
+	return rb_subheight(tree, tree->root);
+}
+/* Computes height of a subtree. */
 static int rb_subheight(rb_tree tree, rb_node n) {
 	int l, r;
 	if (n == tree->nil) return 0;
@@ -479,30 +501,14 @@ static int rb_subheight(rb_tree tree, rb_node n) {
 	r = rb_subheight(tree, n->rchild);
 	return 1 + ((l > r) ? l : r);
 }
-static int rb_height(rb_tree tree) {
-	return rb_subheight(tree, tree->root);
-}
-/******************************************************************************
- * Section 6: SVG
- ******************************************************************************/
-void RBdraw(rb_tree tree, char *fname) {
-	FILE *fp;
-	int height = rb_height(tree);
-	int width;
-	eprintf(">> Creating drawing %s, of height %d nodes.\n", fname, height);
-	if (height == 0) return;
-	if ((fp = fopen(fname, "w")) == NULL) {
-		fprintf(stderr, "Error: couldn't open %s for writing.\n", fname);
-		return;
+/* Computes 2^h, twice the maximum width of a tree of height h. */
+static int pow2(int h) {
+	int ret = 1, base = 2;
+	while (h) {
+		if (h & 1)
+			ret *= base;
+		h >>= 1;
+		base *= base;
 	}
-	width = pow2(height) * (RADIUS + PADDING);
-	if (width > MAXWIDTH) width = MAXWIDTH;
-	eprintf(">> Opened %s for writing. Tree height = %d, image width = %d.\n", fname, height, width);
-	fputs("<?xml version=\"1.0\" standalone=\"no\"?>\n"
-		"<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" \"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">\n"
-		"<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">\n", fp);
-	rb_draw_subtree(fp, tree, tree->root, 0, width, RADIUS+PADDING);
-	fputs("</svg>\n", fp);
-	eprintf(">> Finished drawing %s.\n", fname);
-	fclose(fp);
+	return ret;
 }

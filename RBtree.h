@@ -25,4 +25,6 @@ void RBwrite(rb_tree tree);
  * red-black properties. */
 rb_tree RBread();
 
+void RBdraw(rb_tree tree, char *fname);
+
 #endif /* RBTREE_H */

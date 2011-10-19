@@ -1,7 +1,7 @@
 #ifndef RBTREE_PRIV_H
 #define RBTREE_PRIV_H
 
-#include <stdlib.h>
+#include <stdio.h>
 
 typedef struct rb_node {
 	int key;
@@ -35,5 +35,8 @@ static void rb_preorder_write(rb_tree tree, rb_node n);
 static rb_node rb_get_node_by_key(rb_tree haystack, int needle);
 static void rb_rotate(rb_tree tree, rb_node root, int go_left);
 static rb_node rb_min(rb_tree tree, rb_node node);
+
+static int pow2(int h);
+static void rb_draw_subtree(FILE *fp, rb_tree tree, rb_node n, int l, int r, int h);
 
 #endif /* RBTREE_PRIV_H */

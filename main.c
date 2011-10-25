@@ -16,7 +16,7 @@ void help() {
 "\tD n - Delete node with key `n' from tree\n"
 "\tT   - draw Tree in %s\n"
 "\tH   - Help\n"
-"\tQ   - Quit (you may also use Ctrl-D)\n",
+"\tS   - Stop\n",
 READFILE, DRAWING);
 }
 
@@ -100,8 +100,8 @@ int main(int argc, char *argv[]) {
 			case 'h':
 				help();
 				break;
-			case 'Q':
-			case 'q':
+			case 'S':
+			case 's':
 			case EOF:
 				cmd = EOF;
 				break;

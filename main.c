@@ -28,7 +28,7 @@ int main(int argc, char *argv[]) {
 	help();
 	while (cmd != EOF) {
 		int arg;
-		printf("> ");
+		printf("$ ");
 		fflush(stdout);
 		while (isspace((cmd = getchar()))) {
 			if (cmd == '\n') {

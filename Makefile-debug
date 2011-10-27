@@ -1,17 +1,17 @@
-ZIPFILE = P2-Wilson-Louis.zip
+ZIPFILE = P2-Wilson-Louis-debug.zip
 CFLAGS += -DDEBUG -Wall -Wno-variadic-macros -pedantic
 LDFLAGS += -s
 
-all: run
+all: run-debug
 
-run: main.o RBtree-debug.o
+run-debug: main.o RBtree-debug.o
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
 main.o: RBtree.h
 RBtree-debug.o: RBtree.h RBtree_priv.h
 
 clean:
-	rm run *.o
+	rm run-debug *.o
 
 zip:
-	zip $(ZIPFILE) main.c RBtree.c RBtree.h RBtree_priv.h README.txt Makefile
+	zip $(ZIPFILE) main.c RBtree-debug.c RBtree.h RBtree_priv.h README.txt Makefile-debug

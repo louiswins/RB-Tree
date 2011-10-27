@@ -1,4 +1,5 @@
 run
+run-debug
 *.o
 *.svg
 RBinput.txt

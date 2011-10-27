@@ -5,7 +5,7 @@
 
 
 /******************************************************************************
- * Section 1: Creation and Deletion
+ * Section 1: Creation and Deallocation
  ******************************************************************************/
 /* Creates an empty Red-Black tree. */
 rb_tree RBcreate() {
@@ -23,6 +23,9 @@ rb_tree RBcreate() {
 		return NULL;
 	}
 	ret->nil->color = 'b';
+	ret->nil->lchild = ret->nil;
+	ret->nil->rchild = ret->nil;
+	ret->nil->parent = ret->nil;
 	ret->root = ret->nil;
 	return ret;
 }
@@ -185,10 +188,10 @@ int RBdelete(rb_tree tree, int key) {
 
 	if (dead->lchild == tree->nil) {
 		fixit = dead->rchild;
-		rb_transplant(tree, dead, dead->rchild);
+		rb_transplant(tree, dead, fixit);
 	} else if (dead->rchild == tree->nil) {
 		fixit = dead->lchild;
-		rb_transplant(tree, dead, dead->lchild);
+		rb_transplant(tree, dead, fixit);
 	} else {
 		replacewith = rb_min(tree, dead->rchild);
 		orig_col = replacewith->color;
@@ -242,8 +245,8 @@ static void rb_delete_fix(rb_tree tree, rb_node n) {
 			n = n->parent;
 		} else {
 			/* Case 3: sibling black, "far" child black */
-			if ((is_left && sibling->rchild->color == 'b') ||
-					(!is_left && sibling->lchild->color == 'b')) {
+			if (( is_left && sibling->rchild->color == 'b') ||
+			    (!is_left && sibling->lchild->color == 'b')) {
 				if (is_left) {
 					sibling->lchild->color = 'b';
 				} else {
@@ -363,11 +366,19 @@ static void rb_rotate(rb_tree tree, rb_node root, int go_left) {
 
 	if (go_left) {
 		root->rchild = newroot->lchild;
-		root->rchild->parent = root;
+		/* We CANNOT CHANGE NIL'S PARENT because it totally messes up
+		 * rb_delete_fix, which relies on the node to be fixed's parent
+		 * stay constant. */
+		if (root->rchild != tree->nil) {
+			root->rchild->parent = root;
+		}
 		newroot->lchild = root;
 	} else {
 		root->lchild = newroot->rchild;
-		root->lchild->parent = root;
+		/* See above. */
+		if (root->lchild != tree->nil) {
+			root->lchild->parent = root;
+		}
 		newroot->rchild = root;
 	}
 	newroot->parent = root->parent;

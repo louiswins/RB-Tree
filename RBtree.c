@@ -337,7 +337,9 @@ static rb_node rb_read_subtree(rb_tree tree, rb_node *next, int max, FILE *fp) {
 	}
 	*next = rb_read_node(tree, fp);
 	ret->lchild = rb_read_subtree(tree, next, ret->key - 1, fp);
+	ret->lchild->parent = ret;
 	ret->rchild = rb_read_subtree(tree, next, max, fp);
+	ret->rchild->parent = ret;
 	return ret;
 }
 

@@ -1,10 +1,11 @@
 ZIPFILE = P2-Wilson-Louis.zip
 CFLAGS += -Wall -pedantic
+LDFLAGS += -s
 
 all: run
 
 run: main.o RBtree.o
-	$(CC) $(CFLAGS) $(LDFLAGS) -s -o $@ $^
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
 main.o: RBtree.h
 RBtree.o: RBtree.h RBtree_priv.h

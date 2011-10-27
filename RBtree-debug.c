@@ -123,6 +123,7 @@ int RBinsert(rb_tree tree, int key) {
 	if (newnode == NULL) {
 		return 0;
 	}
+	newnode->parent = newparent;
 	/* If we inserted a new root into the tree */
 	if (newparent == tree->nil) {
 		tree->root = newnode;

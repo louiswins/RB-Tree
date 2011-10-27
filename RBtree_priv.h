@@ -26,7 +26,6 @@ static void rb_delete_subtree(rb_tree tree, rb_node node);
 static rb_node rb_new_node(rb_tree tree, int data);
 static void rb_free_node(rb_node node);
 
-static int rb_unsafe_insert(rb_tree tree, rb_node n);
 static void rb_insert_fix(rb_tree tree, rb_node n);
 static rb_node rb_get_uncle(rb_tree tree, rb_node n);
 
@@ -34,6 +33,8 @@ static void rb_transplant(rb_tree tree, rb_node to, rb_node from);
 static void rb_delete_fix(rb_tree tree, rb_node n);
 
 static void rb_preorder_write(rb_tree tree, rb_node n);
+static rb_node rb_read_node(rb_tree tree, FILE *fp);
+static rb_node rb_read_subtree(rb_tree tree, rb_node *next, int max, FILE *fp);
 
 static rb_node rb_get_node_by_key(rb_tree haystack, int needle);
 static void rb_rotate(rb_tree tree, rb_node root, int go_left);

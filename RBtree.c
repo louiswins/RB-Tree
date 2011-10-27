@@ -2,6 +2,7 @@
 #include "RBtree_priv.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <limits.h>
 
 
 /******************************************************************************
@@ -86,43 +87,34 @@ void RBcleanup() {
  ******************************************************************************/
 /* Inserts an element with specified key into tree. */
 int RBinsert(rb_tree tree, int key) {
-	rb_node newnode = rb_new_node(tree, key);
-	if (newnode == NULL) {
-		return 0;
-	}
-	if (!rb_unsafe_insert(tree, newnode)) {
-		rb_free_node(newnode);
-		fprintf(stderr, "Error: node %i already in the tree.\n", key);
-		return 0;
-	}
-	rb_insert_fix(tree, newnode);
-	return 1;
-}
-/* Helper routine: acts a binary tree insertion. DOES NOT PRESERVE RED-BLACK
- * PROPERTIES. */
-static int rb_unsafe_insert(rb_tree tree, rb_node n) {
+	rb_node newnode;
 	rb_node newparent = tree->nil;
 	rb_node root = tree->root;
 	while (root != tree->nil) {
 		newparent = root;
-		if (n->key < root->key) {
+		if (key < root->key) {
 			root = root->lchild;
-		} else if (n->key > root->key) {
+		} else if (key > root->key) {
 			root = root->rchild;
 		} else {
+			fprintf(stderr, "Error: node %i already in the tree.\n", key);
 			return 0;
 		}
 	}
-	n->parent = newparent;
+	newnode = rb_new_node(tree, key);
+	if (newnode == NULL) {
+		return 0;
+	}
 	/* If we inserted a new root into the tree */
 	if (newparent == tree->nil) {
-		tree->root = n;
+		tree->root = newnode;
 	}
-	if (n->key < newparent->key) {
-		newparent->lchild = n;
+	if (key < newparent->key) {
+		newparent->lchild = newnode;
 	} else {
-		newparent->rchild = n;
+		newparent->rchild = newnode;
 	}
+	rb_insert_fix(tree, newnode);
 	return 1;
 }
 /* Corrects for properties violated on a single insertion. */
@@ -304,6 +296,7 @@ static void rb_preorder_write(rb_tree tree, rb_node n) {
 /* Reads a tree in preorder format from RBREADFILE. */
 rb_tree RBread(char *fname) {
 	rb_tree ret;
+	rb_node node;
 	FILE *infp = fopen(fname, "r");
 	if (infp == NULL) {
 		fprintf(stderr, "Error: couldn't read file %s.\n", fname);
@@ -314,30 +307,39 @@ rb_tree RBread(char *fname) {
 		fclose(infp);
 		return NULL;
 	}
-	do {
-		char col;
-		int data;
-		if (fscanf(infp, " %c, %d ", &col, &data) != 2) {
-			fprintf(stderr, "File format error: continuing.\n");
- 		} else if (col != 'b' && col != 'r') {
-			fprintf(stderr, "Invalid node color `%c': skipping.\n", col);
-		} else {
-			rb_node n = rb_new_node(ret, data);
-			if (n == NULL) {
-				break;
-			}
-			n->color = col;
-			rb_unsafe_insert(ret, n);
-		}
-	/* skip over semicolon; if it isn't there, we know that input has ended. */
-	} while (getc(infp) == ';');
-	fclose(infp);
+	node = rb_read_node(ret, infp);
+	ret->root = rb_read_subtree(ret, &node, INT_MAX, infp);
 	return ret;
 }
-
-
-
-
+/* Helper routine: read a single node from file fp. */
+static rb_node rb_read_node(rb_tree tree, FILE *fp) {
+	/* Skip optional semicolon */
+	char col;
+	int data;
+	rb_node n;
+	fscanf(fp, " ; ");
+	/* If node is invalid */
+	if (fscanf(fp, " %c, %d ", &col, &data) != 2 || (col != 'b' && col != 'r')) {
+		return NULL;
+	}
+	n = rb_new_node(tree, data);
+	if (n == NULL) {
+		return NULL;
+	}
+	n->color = col;
+	return n;
+}
+/* Reads a tree in preorder format, limited by the maximum value of max. */
+static rb_node rb_read_subtree(rb_tree tree, rb_node *next, int max, FILE *fp) {
+	rb_node ret = *next;
+	if (ret == NULL || ret->key > max) {
+		return tree->nil;
+	}
+	*next = rb_read_node(tree, fp);
+	ret->lchild = rb_read_subtree(tree, next, ret->key - 1, fp);
+	ret->rchild = rb_read_subtree(tree, next, max, fp);
+	return ret;
+}
 
 
 

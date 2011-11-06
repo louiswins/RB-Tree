@@ -170,9 +170,8 @@ static rb_node rb_get_uncle(rb_tree tree, rb_node n) {
 /* Deletes an element with a particular key. */
 int RBdelete(rb_tree tree, int key) {
 	rb_node dead = rb_get_node_by_key(tree, key);
-	rb_node replacewith = dead;
 	rb_node fixit;
-	char orig_col = replacewith->color;
+	char orig_col = dead->color;
 	/* Node does not exist, so we cannot delete it */
 	if (dead == tree->nil) {
 		fprintf(stderr, "Error: node %i does not exist.\n", key);
@@ -186,20 +185,24 @@ int RBdelete(rb_tree tree, int key) {
 		fixit = dead->lchild;
 		rb_transplant(tree, dead, fixit);
 	} else {
-		replacewith = rb_min(tree, dead->rchild);
-		orig_col = replacewith->color;
-		fixit = replacewith->rchild;
-		if (replacewith->parent == dead) {
-			fixit->parent = replacewith;
+		/* Replace it with the successor */
+		rb_node successor = rb_min(tree, dead->rchild);
+		orig_col = successor->color;
+		fixit = successor->rchild;
+		/* If the successor is just the node itself */
+		if (successor->parent == dead) {
+			/* Set up the parent node in case fixit is nil */
+			fixit->parent = successor;
 		} else {
-			rb_transplant(tree, replacewith, replacewith->rchild);
-			replacewith->rchild = dead->rchild;
-			replacewith->rchild->parent = replacewith;
+			/* Put the successor's right child into its place */
+			rb_transplant(tree, successor, successor->rchild);
+			successor->rchild = dead->rchild;
+			successor->rchild->parent = successor;
 		}
-		rb_transplant(tree, dead, replacewith);
-		replacewith->lchild = dead->lchild;
-		replacewith->lchild->parent = replacewith;
-		replacewith->color = dead->color;
+		rb_transplant(tree, dead, successor);
+		successor->lchild = dead->lchild;
+		successor->lchild->parent = successor;
+		successor->color = dead->color;
 	}
 	rb_free_node(dead);
 	/* If the color of replacewith was black, we have a violation of

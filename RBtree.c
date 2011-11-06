@@ -140,9 +140,9 @@ static void rb_insert_fix(rb_tree tree, rb_node n) {
 
 	/* Case 2: node is "close" to uncle */
 	if ((n->parent->lchild == n) == (gp->lchild == uncle)) {
-		rb_node newroot = n->parent;
-		rb_rotate(tree, newroot, newroot->rchild == n);
-		n = newroot;
+		rb_node new_n = n->parent;
+		rb_rotate(tree, new_n, new_n->rchild == n);
+		n = new_n;
 	} /* Fall through to case 3 */
 	n->parent->color = 'b';
 	gp->color = 'r';

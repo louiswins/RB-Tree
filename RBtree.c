@@ -7,7 +7,7 @@
 
 /******************************************************************************
  * Section 1: Creation and Deallocation
- ******************************************************************************/
+ *****************************************************************************/
 /* Creates an empty Red-Black tree. */
 rb_tree RBcreate() {
 	rb_tree ret;
@@ -84,7 +84,7 @@ void RBcleanup() {
 
 /******************************************************************************
  * Section 2: Insertion
- ******************************************************************************/
+ *****************************************************************************/
 /* Inserts an element with specified key into tree. */
 int RBinsert(rb_tree tree, int key) {
 	rb_node newnode;
@@ -166,7 +166,7 @@ static rb_node rb_get_uncle(rb_tree tree, rb_node n) {
 
 /******************************************************************************
  * Section 3: Deletion
- ******************************************************************************/
+ *****************************************************************************/
 /* Deletes an element with a particular key. */
 int RBdelete(rb_tree tree, int key) {
 	rb_node dead = rb_get_node_by_key(tree, key);
@@ -277,7 +277,7 @@ static void rb_delete_fix(rb_tree tree, rb_node n) {
 
 /******************************************************************************
  * Section 4: I/O
- ******************************************************************************/
+ *****************************************************************************/
 /* Writes a tree to stdout in preorder format. */
 void RBwrite(rb_tree tree) {
 	if (tree->root == tree->nil) {
@@ -353,7 +353,7 @@ static rb_node rb_read_subtree(rb_tree tree, rb_node *next, int max, FILE *fp) {
 
 /******************************************************************************
  * Section 5: General helper methods
- ******************************************************************************/
+ *****************************************************************************/
 /* Returns a node with the given key. */
 static rb_node rb_get_node_by_key(rb_tree haystack, int needle) {
 	rb_node root = haystack->root;
@@ -411,7 +411,7 @@ static rb_node rb_min(rb_tree tree, rb_node node) {
 
 /******************************************************************************
  * Section 6: SVG
- ******************************************************************************/
+ *****************************************************************************/
 /* Draws an SVG picture of the tree in the specified file. */
 void RBdraw(rb_tree tree, char *fname) {
 	FILE *fp;

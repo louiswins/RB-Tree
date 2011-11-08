@@ -104,7 +104,7 @@ int main(int argc, char *argv[]) {
 			case 's':
 			case EOF:
 				cmd = EOF;
-				break;
+			/* Corresponds to an empty command */
 			case '\n':
 				break;
 			default:

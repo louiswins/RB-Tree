@@ -10,16 +10,16 @@
  *****************************************************************************/
 /* Creates an empty Red-Black tree. */
 rb_tree RBcreate() {
-	rb_tree ret;
+	rb_tree ret; /* The tree we are returning */
 	if ((ret = malloc(sizeof(*ret))) == NULL) {
 		fprintf(stderr, "Error: out of memory.\n");
 		return NULL;
 	}
 	/* We can't use rb_new_node() because it wants to set some of the values
-	 * to tree->nil. We don't care what the values are except for color, so
-	 * leave them at undefined. */
+	 * to tree->nil. */
 	if ((ret->nil = malloc(sizeof(*ret->nil))) == NULL) {
 		fprintf(stderr, "Error: out of memory.\n");
+		/* Allocation of ret was successful, we need to free it. */
 		free(ret);
 		return NULL;
 	}
@@ -31,21 +31,22 @@ rb_tree RBcreate() {
 	return ret;
 }
 /* Frees an entire tree. */
-void RBdestroy(rb_tree tree) {
-	rb_delete_subtree(tree, tree->root);
+void RBfree(rb_tree tree) {
+	rb_free_subtree(tree, tree->root);
 	rb_free_node(tree->nil);
 	free(tree);
 }
 /* Helper routine: frees a subtree rooted at specified node. */
-static void rb_delete_subtree(rb_tree tree, rb_node node) {
+static void rb_free_subtree(rb_tree tree, rb_node node) {
 	if (node == tree->nil) return;
-	rb_delete_subtree(tree, node->lchild);
-	rb_delete_subtree(tree, node->rchild);
+	rb_free_subtree(tree, node->lchild);
+	rb_free_subtree(tree, node->rchild);
 	rb_free_node(node);
 }
-/* Creates a new node, taking from the memory pool if available. */
+/* Creates a new node. */
 static rb_node rb_new_node(rb_tree tree, int data) {
 	rb_node ret;
+	/* We take nodes from the memory pool if we can; else just allocate it. */
 	if (rb_mem_pool != NULL) {
 		ret = rb_mem_pool;
 		rb_mem_pool = ret->parent;
@@ -79,17 +80,14 @@ void RBcleanup() {
 
 
 
-
-
-
 /******************************************************************************
  * Section 2: Insertion
  *****************************************************************************/
 /* Inserts an element with specified key into tree. */
 int RBinsert(rb_tree tree, int key) {
-	rb_node newnode;
-	rb_node newparent = tree->nil;
-	rb_node root = tree->root;
+	rb_node newnode; /* The node we will create */
+	rb_node newparent = tree->nil; /* newnode's parent */
+	rb_node root = tree->root; /* Represents the position we will put newnode */
 	while (root != tree->nil) {
 		newparent = root;
 		if (key < root->key) {
@@ -97,6 +95,7 @@ int RBinsert(rb_tree tree, int key) {
 		} else if (key > root->key) {
 			root = root->rchild;
 		} else {
+			/* We don't support two nodes with the same value. */
 			fprintf(stderr, "Error: node %i already in the tree.\n", key);
 			return 0;
 		}
@@ -106,7 +105,7 @@ int RBinsert(rb_tree tree, int key) {
 		return 0;
 	}
 	newnode->parent = newparent;
-	/* If we inserted a new root into the tree */
+	/* If the tree was empty */
 	if (newparent == tree->nil) {
 		tree->root = newnode;
 	}
@@ -118,10 +117,10 @@ int RBinsert(rb_tree tree, int key) {
 	rb_insert_fix(tree, newnode);
 	return 1;
 }
-/* Corrects for properties violated on a single insertion. */
+/* Corrects for properties violated on an insertion. */
 static void rb_insert_fix(rb_tree tree, rb_node n) {
-	rb_node gp = n->parent->parent,
-		uncle = rb_get_uncle(tree, n);
+	rb_node gp = n->parent->parent, /* grandparent */
+		uncle = rb_get_uncle(tree, n); /* uncle */
 
 	/* Case 1: uncle is colored red */
 	while (n->parent->color == 'r' && uncle->color == 'r') {
@@ -138,12 +137,13 @@ static void rb_insert_fix(rb_tree tree, rb_node n) {
 		return;
 	}
 
-	/* Case 2: node is "close" to uncle */
+	/* Case 2: node is "close to" uncle */
 	if ((n->parent->lchild == n) == (gp->lchild == uncle)) {
 		rb_node new_n = n->parent;
 		rb_rotate(tree, new_n, new_n->rchild == n);
 		n = new_n;
-	} /* Fall through to case 3 */
+	} /* Fall through */
+	/* Case 3: node is "far from" uncle */
 	n->parent->color = 'b';
 	gp->color = 'r';
 	rb_rotate(tree, gp, gp->lchild == uncle);
@@ -162,15 +162,16 @@ static rb_node rb_get_uncle(rb_tree tree, rb_node n) {
 
 
 
-
-
 /******************************************************************************
  * Section 3: Deletion
  *****************************************************************************/
 /* Deletes an element with a particular key. */
 int RBdelete(rb_tree tree, int key) {
+	/* The node with the actual key */
 	rb_node dead = rb_get_node_by_key(tree, key);
+	/* The node where we will fix the tree structure */
 	rb_node fixit;
+	/* Original color of the deleted node */
 	char orig_col = dead->color;
 	/* Node does not exist, so we cannot delete it */
 	if (dead == tree->nil) {
@@ -189,7 +190,6 @@ int RBdelete(rb_tree tree, int key) {
 		rb_node successor = rb_min(tree, dead->rchild);
 		orig_col = successor->color;
 		fixit = successor->rchild;
-		/* If the successor is just the node itself */
 		if (successor->parent == dead) {
 			/* Set up the parent node in case fixit is nil */
 			fixit->parent = successor;
@@ -205,14 +205,13 @@ int RBdelete(rb_tree tree, int key) {
 		successor->color = dead->color;
 	}
 	rb_free_node(dead);
-	/* If the color of replacewith was black, we have a violation of
-	 * property 5, and possibly 4 as well. */
+	/* Only fix it if we deleted a black node */
 	if (orig_col == 'b') {
 		rb_delete_fix(tree, fixit);
 	}
 	return 1;
 }
-/* Helper routine: transplants node from into node to's position. */
+/* Helper routine: transplants node `from' into node `to's position. */
 static void rb_transplant(rb_tree tree, rb_node to, rb_node from) {
 	if (to->parent == tree->nil) {
 		tree->root = from;
@@ -223,10 +222,14 @@ static void rb_transplant(rb_tree tree, rb_node to, rb_node from) {
 	}
 	from->parent = to->parent;
 }
-/* Fixes possible violations from node deletion. */
+/* Corrects for properties violated on a deletion. */
 static void rb_delete_fix(rb_tree tree, rb_node n) {
+	/* It's always safe to change the root black, and if we reach a red
+	 * node, we can fix the tree by changing it black. */
 	while (n != tree->root && n->color == 'b') {
-		int is_left = n == n->parent->lchild;
+		/* Instead of duplicating code, we just have a flag to test
+		 * which direction we are dealing with. */
+		int is_left = (n == n->parent->lchild);
 		rb_node sibling = (is_left) ? n->parent->rchild : n->parent->lchild;
 		/* Case 1: sibling red */
 		if (sibling->color == 'r') {
@@ -251,7 +254,7 @@ static void rb_delete_fix(rb_tree tree, rb_node n) {
 				sibling->color = 'r';
 				rb_rotate(tree, sibling, !is_left);
 				sibling = (is_left) ? n->parent->rchild : n->parent->lchild;
-			} /* Fall through to case 4 */
+			} /* Fall through */
 			/* Case 4: sibling black, "far" child red */
 			sibling->color = n->parent->color;
 			n->parent->color = 'b';
@@ -267,10 +270,6 @@ static void rb_delete_fix(rb_tree tree, rb_node n) {
 	}
 	n->color = 'b';
 }
-
-
-
-
 
 
 
@@ -300,7 +299,7 @@ static void rb_preorder_write(rb_tree tree, rb_node n) {
 /* Reads a tree in preorder format from RBREADFILE. */
 rb_tree RBread(char *fname) {
 	rb_tree ret;
-	rb_node node;
+	rb_node root;
 	FILE *infp = fopen(fname, "r");
 	if (infp == NULL) {
 		fprintf(stderr, "Error: couldn't read file %s.\n", fname);
@@ -311,27 +310,9 @@ rb_tree RBread(char *fname) {
 		fclose(infp);
 		return NULL;
 	}
-	node = rb_read_node(ret, infp);
-	ret->root = rb_read_subtree(ret, &node, INT_MAX, infp);
+	root = rb_read_node(ret, infp);
+	ret->root = rb_read_subtree(ret, &root, INT_MAX, infp);
 	return ret;
-}
-/* Helper routine: read a single node from file fp. */
-static rb_node rb_read_node(rb_tree tree, FILE *fp) {
-	/* Skip optional semicolon */
-	char col;
-	int data;
-	rb_node n;
-	fscanf(fp, " ; ");
-	/* If node is invalid */
-	if (fscanf(fp, " %c, %d ", &col, &data) != 2 || (col != 'b' && col != 'r')) {
-		return NULL;
-	}
-	n = rb_new_node(tree, data);
-	if (n == NULL) {
-		return NULL;
-	}
-	n->color = col;
-	return n;
 }
 /* Reads a tree in preorder format, limited by the maximum value of max. */
 static rb_node rb_read_subtree(rb_tree tree, rb_node *next, int max, FILE *fp) {
@@ -340,57 +321,75 @@ static rb_node rb_read_subtree(rb_tree tree, rb_node *next, int max, FILE *fp) {
 		return tree->nil;
 	}
 	*next = rb_read_node(tree, fp);
+	/* Nodes up to my own value belong to my left subtree */
 	ret->lchild = rb_read_subtree(tree, next, ret->key - 1, fp);
 	ret->lchild->parent = ret;
+	/* Nodes up to the previous maximum belong to my right subtree */
 	ret->rchild = rb_read_subtree(tree, next, max, fp);
 	ret->rchild->parent = ret;
 	return ret;
+}
+/* Helper routine: read a single node from file fp. */
+static rb_node rb_read_node(rb_tree tree, FILE *fp) {
+	rb_node n; /* the node to return */
+	char col;  /* the color of the node */
+	int data;  /* the data of the node */
+	/* Skip optional semicolon */
+	fscanf(fp, " ; ");
+	/* If node is invalid (or we've reached EOF), die a painful death */
+	if (fscanf(fp, " %c, %d ", &col, &data) != 2 || (col != 'b' && col != 'r')) {
+		return NULL;
+	}
+	n = rb_new_node(tree, data);
+	if (n != NULL) n->color = col;
+	return n;
 }
 
 
 
 
-
 /******************************************************************************
- * Section 5: General helper methods
+ * Section 5: General helper routines
  *****************************************************************************/
 /* Returns a node with the given key. */
 static rb_node rb_get_node_by_key(rb_tree haystack, int needle) {
-	rb_node root = haystack->root;
-	while (root != haystack->nil) {
-		if (root->key == needle) {
-			return root;
-		} else if (needle < root->key) {
-			root = root->lchild;
+	rb_node pos = haystack->root; /* our current position */
+	while (pos != haystack->nil) {
+		if (pos->key == needle) {
+			return pos;
+		} else if (needle < pos->key) {
+			pos = pos->lchild;
 		} else {
-			root = root->rchild;
+			pos = pos->rchild;
 		}
 	}
 	return haystack->nil;
 }
 /* Rotates a tree around the given root. */
 static void rb_rotate(rb_tree tree, rb_node root, int go_left) {
-	rb_node newroot = (go_left) ? root->rchild : root->lchild;
+	/* Instead of duplicating code, we just
+	 * have a flag to indicate the direction to rotate. */
 
+	/* The new top node */
+	rb_node newroot = (go_left) ? root->rchild : root->lchild;
+	/* We swap the center child and the old top node */
 	if (go_left) {
 		root->rchild = newroot->lchild;
-		/* We CANNOT CHANGE NIL'S PARENT because it totally messes up
-		 * rb_delete_fix, which relies on the node to be fixed's parent
-		 * stay constant. */
 		if (root->rchild != tree->nil) {
 			root->rchild->parent = root;
 		}
 		newroot->lchild = root;
 	} else {
 		root->lchild = newroot->rchild;
-		/* See above. */
 		if (root->lchild != tree->nil) {
 			root->lchild->parent = root;
 		}
 		newroot->rchild = root;
 	}
+	/* Now we set up the parent nodes */
 	newroot->parent = root->parent;
 	root->parent = newroot;
+	/* We update old top node's parent to point to the new top node */
 	if (newroot->parent == tree->nil) {
 		tree->root = newroot;
 	} else if (newroot->parent->lchild == root) {
@@ -405,6 +404,14 @@ static rb_node rb_min(rb_tree tree, rb_node node) {
 		node = node->lchild;
 	return node;
 }
+/* Computes height of the tree rooted at node n. */
+static int rb_height(rb_tree tree, rb_node n) {
+	int l, r;
+	if (n == tree->nil) return 0;
+	l = rb_height(tree, n->lchild);
+	r = rb_height(tree, n->rchild);
+	return 1 + ((l > r) ? l : r);
+}
 
 
 
@@ -414,66 +421,74 @@ static rb_node rb_min(rb_tree tree, rb_node node) {
  *****************************************************************************/
 /* Draws an SVG picture of the tree in the specified file. */
 void RBdraw(rb_tree tree, char *fname) {
-	FILE *fp;
-	int height = rb_height(tree);
-	int width;
+	FILE *fp; /* file to print to */
+	int height = rb_height(tree, tree->root); /* height of the tree */
+	int width; /* width of the image */
+	int adjwidth; /* adjusted width of the image in px */
+	double factor; /* adjust factor for the node positions */
 	if (height == 0) return;
 	if ((fp = fopen(fname, "w")) == NULL) {
 		fprintf(stderr, "Error: couldn't open %s for writing.\n", fname);
 		return;
 	}
-	width = pow2(height) * (RADIUS + PADDING);
-	if (width > MAXWIDTH) width = MAXWIDTH;
+	width = pow2(height-1) * (2*RADIUS + PADDING) - PADDING;
+	adjwidth = (width > MAXWIDTH) ? MAXWIDTH : width;
+	factor = (height == 1) ? 1 : (adjwidth-2*RADIUS) / (width-2*RADIUS);
 	fprintf(fp, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n"
 		"<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" \"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">\n"
 		"<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" width=\"%dpx\" height=\"%dpx\" "
 		"style=\"background-color:white\">\n",
-		width, height * (2*RADIUS + PADDING) + PADDING);
-	rb_draw_subtree(fp, tree, tree->root, 0, width - RADIUS - PADDING, RADIUS+PADDING);
+		adjwidth, (int)(height * (2*RADIUS + PADDING) - PADDING));
+	rb_draw_subtree(fp, tree, tree->root, calcpos(height-1, 0, factor), RADIUS, height-1, 0, factor);
 	fputs("</svg>\n", fp);
 	fclose(fp);
 }
-/* Draws a subtree rooted at a given node between the x-coordinates l and r,
- * starting at height h. */
-static void rb_draw_subtree(FILE *fp, rb_tree tree, rb_node n, int l, int r, int h) {
+/* Draws a subtree rooted at a given node between l and r, at height h. */
+/* This method has complicated and seemingly-arbitrary arguments to reduce on
+ * computation. It's a private method, so I feel justified in making it hard to
+ * call. */
+static void rb_draw_subtree(FILE *fp, rb_tree tree, rb_node n, double x, double y, int h, int rowpos, double factor) {
+	/* Declare a metric truckload of variables for calculation purposes */
 	char *col = (n->color == 'b') ? "black" : "red";
-	int mid = (l+r)/2;
-	int nexth = h + 2*RADIUS + PADDING;
+	/* pixel y position for next row */
+	double ny = y + 2*RADIUS + PADDING;
+
+	/* Draw left subtree */
 	if (n->lchild != tree->nil) {
-		fprintf(fp, "<line x1=\"%d\" y1=\"%d\" x2=\"%d\" y2=\"%d\" "
+		/* pixel x position of left child */
+		double nx = calcpos(h-1, 2*rowpos, factor);
+		fprintf(fp, "<line x1=\"%f\" y1=\"%f\" x2=\"%f\" y2=\"%f\" "
 			"style=\"stroke:black;stroke-width:1\"/>\n",
-			mid, h, (l+mid)/2, nexth);
-		rb_draw_subtree(fp, tree, n->lchild, l, mid, nexth);
+			x, y, nx, ny);
+		rb_draw_subtree(fp, tree, n->lchild, nx, ny, h-1, 2*rowpos, factor);
 	}
+	/* Draw right subtree */
 	if (n->rchild != tree->nil) {
-		fprintf(fp, "<line x1=\"%d\" y1=\"%d\" x2=\"%d\" y2=\"%d\" "
+		/* pixel x position of right child */
+		double nx = calcpos(h-1, 2*rowpos+1, factor);
+		fprintf(fp, "<line x1=\"%f\" y1=\"%f\" x2=\"%f\" y2=\"%f\" "
 			"style=\"stroke:black;stroke-width:1\"/>\n",
-			mid, h, (mid+r)/2, nexth);
-		rb_draw_subtree(fp, tree, n->rchild, mid, r, nexth);
+			x, y, nx, ny);
+		rb_draw_subtree(fp, tree, n->rchild, nx, ny, h-1, 2*rowpos+1, factor);
 	}
-	fprintf(fp, "<circle cx=\"%d\" cy=\"%d\" r=\"%d\" stroke=\"black\" "
-		"stroke-width=\"1\" fill=\"%s\"/>\n", (l+r)/2, h, RADIUS, col);
-	fprintf(fp, "<text x=\"%d\" y=\"%d\" fill=\"white\" text-anchor=\"middle\" "
-		"dy=\"0.5ex\">%d</text>\n", (l+r)/2, h, n->key);
+	/* Draw the node itself */
+	fprintf(fp, "<circle cx=\"%f\" cy=\"%f\" r=\"%f\" stroke=\"black\" "
+		"stroke-width=\"1\" fill=\"%s\"/>\n", x, y, RADIUS, col);
+	/* And write the node key */
+	fprintf(fp, "<text x=\"%f\" y=\"%f\" fill=\"white\" text-anchor=\"middle\" "
+		"dy=\"0.5ex\">%d</text>\n", x, y, n->key);
 }
-/* Computes height of a tree. */
-static int rb_height(rb_tree tree) {
-	return rb_subheight(tree, tree->root);
+/* Calculates x position of circle exp rows from the top, at position rowpos in
+ * its row. factor corrects for an image which would be greater than MAXWIDTH. */
+static double calcpos(int exp, int rowpos, double factor) {
+	/* This equation took quite a bit of diagramming on paper to come up with. */
+	return (pow2(exp) * (2*rowpos+1) - 1) * (RADIUS + PADDING/2) * factor + RADIUS;
 }
-/* Computes height of a subtree. */
-static int rb_subheight(rb_tree tree, rb_node n) {
-	int l, r;
-	if (n == tree->nil) return 0;
-	l = rb_subheight(tree, n->lchild);
-	r = rb_subheight(tree, n->rchild);
-	return 1 + ((l > r) ? l : r);
-}
-/* Computes 2^h, twice the maximum width of a tree of height h. */
+/* Computes 2^h */
 static int pow2(int h) {
 	int ret = 1, base = 2;
 	while (h) {
-		if (h & 1)
-			ret *= base;
+		if (h & 1) ret *= base;
 		h >>= 1;
 		base *= base;
 	}

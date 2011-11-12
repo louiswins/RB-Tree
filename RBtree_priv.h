@@ -59,9 +59,10 @@ static rb_node rb_min(rb_tree tree, rb_node node);
 static int rb_height(rb_tree tree, rb_node n);
 
 /* Section 6: SVG */
-#define RADIUS 15.0     /* Radius of each node */
-#define PADDING 10.0    /* Padding between nodes */
+#define RADIUS 15.0   /* Radius of each node */
+#define PADDING 10.0  /* Padding between nodes */
 #define MAXWIDTH 1000 /* Maximum width of an image in px */
+#define IMGBORDER 5   /* Blank space around image */
 /* Draws a subtree rooted at a node n */
 static void rb_draw_subtree(FILE *fp, rb_tree tree, rb_node n, double x,
 		double y, int h, int rowpos, double factor);

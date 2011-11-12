@@ -431,16 +431,16 @@ void RBdraw(rb_tree tree, char *fname) {
 		fprintf(stderr, "Error: couldn't open %s for writing.\n", fname);
 		return;
 	}
-	width = pow2(height-1) * (2*RADIUS + PADDING) - PADDING;
+	width = pow2(height-1) * (2*RADIUS + PADDING) - PADDING + 2*IMGBORDER;
 	adjwidth = (width > MAXWIDTH) ? MAXWIDTH : width;
 	/* If it weren't for this factor, calculations would be a lot easier. */
-	factor = (height == 1) ? 1.0 : (adjwidth-2*RADIUS) / (width-2*RADIUS);
+	factor = (height == 1) ? 1.0 : (adjwidth-2*(RADIUS+IMGBORDER)) / (width-2*(RADIUS+IMGBORDER));
 	fprintf(fp, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n"
 		"<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" \"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">\n"
 		"<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" width=\"%dpx\" height=\"%dpx\" "
 		"style=\"background-color:white\">\n",
-		adjwidth, (int)(height * (2*RADIUS + PADDING) - PADDING));
-	rb_draw_subtree(fp, tree, tree->root, calcpos(height-1, 0, factor), RADIUS, height-1, 0, factor);
+		adjwidth, (int)(height * (2*RADIUS + PADDING) - PADDING + 2*IMGBORDER));
+	rb_draw_subtree(fp, tree, tree->root, calcpos(height-1, 0, factor), RADIUS+IMGBORDER, height-1, 0, factor);
 	fputs("</svg>\n", fp);
 	fclose(fp);
 }
@@ -494,7 +494,7 @@ static void rb_draw_subtree(FILE *fp, rb_tree tree, rb_node n, double x, double 
  * its row. factor corrects for an image which would be greater than MAXWIDTH. */
 static double calcpos(int exp, int rowpos, double factor) {
 	/* This equation took quite a bit of diagramming on paper to come up with. */
-	return (pow2(exp) * (2*rowpos+1) - 1) * (RADIUS + PADDING/2) * factor + RADIUS;
+	return (pow2(exp) * (2*rowpos+1) - 1) * (RADIUS + PADDING/2) * factor + RADIUS + IMGBORDER;
 }
 /* Computes 2^h */
 static int pow2(int h) {

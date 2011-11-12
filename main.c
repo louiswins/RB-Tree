@@ -3,11 +3,10 @@
 #include <ctype.h>
 
 #define READFILE "RBinput.txt"
-#define DRAWING "RBdrawing.svg"
+#define DRAWFILE "RBdrawing.svg"
 
 void help() {
 	printf(
-"Louis Wilson's CSE310 Project #2\n"
 "Commands:\n"
 "\tC   - Create empty tree\n"
 "\tR   - Read tree from %s\n"
@@ -17,7 +16,7 @@ void help() {
 "\tT   - draw Tree in %s\n"
 "\tH   - Help\n"
 "\tS   - Stop\n",
-READFILE, DRAWING);
+READFILE, DRAWFILE);
 }
 
 int main(int argc, char *argv[]) {
@@ -25,13 +24,17 @@ int main(int argc, char *argv[]) {
 		tmp = NULL;
 	int cmd = 0;
 
+	printf("Louis Wilson's CSE310 Project #2\n");
 	help();
 	while (cmd != EOF) {
 		int arg;
 		printf("$ ");
 		fflush(stdout);
+		/* Find the first non-whitespace character */
 		while (isspace((cmd = getchar()))) {
 			if (cmd == '\n') {
+				/* We delete up to end of line after the
+				 * switch, so put the \n back on. */
 				ungetc(cmd, stdin);
 				break;
 			}
@@ -39,19 +42,23 @@ int main(int argc, char *argv[]) {
 		switch(cmd) {
 			case 'C':
 			case 'c':
+				/* If we already had a tree, we need to free up
+				 * the memory. */
 				if (tree != NULL) {
 					printf("Tree already exists - clearing.\n");
-					RBdestroy(tree);
+					RBfree(tree);
 				}
 				tree = RBcreate();
 				break;
 			case 'R':
 			case 'r':
 				tmp = RBread(READFILE);
+				/* If there was an error, just keep the tree we
+				 * have. */
 				if (tmp != NULL) {
 					if (tree != NULL) {
 						printf("Non-empty tree - overwriting.\n");
-						RBdestroy(tree);
+						RBfree(tree);
 					}
 					tree = tmp;
 				}
@@ -93,17 +100,20 @@ int main(int argc, char *argv[]) {
 				if (tree == NULL) {
 					fprintf(stderr, "Error: no tree loaded, cannot draw.\n");
 				} else {
-					RBdraw(tree, DRAWING);
+					RBdraw(tree, DRAWFILE);
 				}
 				break;
 			case 'H':
 			case 'h':
 				help();
 				break;
+			case EOF:
+				/* Make the shell not return on the same line */
+				putchar('\n');
 			case 'S':
 			case 's':
-			case EOF:
 				cmd = EOF;
+				break;
 			/* Corresponds to an empty command */
 			case '\n':
 				break;
@@ -118,9 +128,9 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-
+	/* We need to free the tree. */
 	if (tree != NULL) {
-		RBdestroy(tree);
+		RBfree(tree);
 		RBcleanup();
 	}
 

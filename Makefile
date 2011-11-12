@@ -15,5 +15,7 @@ RBtree.o: RBtree.h RBtree_priv.h
 clean:
 	-rm run $(OBJECTS) 
 
-zip:
+$(ZIPFILE):
 	zip $(ZIPFILE) main.c RBtree.c RBtree.h RBtree_priv.h README.txt Makefile
+
+zip: $(ZIPFILE)

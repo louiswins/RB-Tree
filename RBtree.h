@@ -6,7 +6,7 @@ typedef struct rb_tree *rb_tree;
 /* Creates an empty Red-Black tree. */
 rb_tree RBcreate();
 /* Frees an entire tree. */
-void RBdestroy(rb_tree tree);
+void RBfree(rb_tree tree);
 /* Cleans up. Call this when you won't be using any more Red-Black trees. */
 void RBcleanup();
 
@@ -16,11 +16,13 @@ int RBinsert(rb_tree tree, int key);
 /* Deletes an element with a particular key. */
 int RBdelete(rb_tree tree, int key);
 
-/* Writes a tree to stdout in preorder format. */
+/* Writes a tree to stdout in preorder format.
+ * Outputs everything on the same line. */
 void RBwrite(rb_tree tree);
 /* Reads a tree in preorder format from file.
- * DOES NOT CHECK to see if this tree is formatted correctly to preserve
- * red-black properties. */
+ * Warning: does NOT check to see if the resulting tree violates Red-Black
+ * properties, and BOLDLY ASSUMES that the input file is well-formatted. Will
+ * return once it sees something it doesn't understand. */
 rb_tree RBread(char *fname);
 
 /* Draws an SVG picture of the tree in the specified file. */

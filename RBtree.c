@@ -425,7 +425,7 @@ void RBdraw(rb_tree tree, char *fname) {
 	int height = rb_height(tree, tree->root); /* height of the tree */
 	int width; /* width of the image */
 	int adjwidth; /* adjusted width of the image in px */
-	double factor; /* adjust factor for the node positions */
+	double factor; /* adjust factor for the node positions based on width and adjwidth */
 	if (height == 0) return;
 	if ((fp = fopen(fname, "w")) == NULL) {
 		fprintf(stderr, "Error: couldn't open %s for writing.\n", fname);
@@ -433,7 +433,8 @@ void RBdraw(rb_tree tree, char *fname) {
 	}
 	width = pow2(height-1) * (2*RADIUS + PADDING) - PADDING;
 	adjwidth = (width > MAXWIDTH) ? MAXWIDTH : width;
-	factor = (height == 1) ? 1 : (adjwidth-2*RADIUS) / (width-2*RADIUS);
+	/* If it weren't for this factor, calculations would be a lot easier. */
+	factor = (height == 1) ? 1.0 : (adjwidth-2*RADIUS) / (width-2*RADIUS);
 	fprintf(fp, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n"
 		"<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" \"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">\n"
 		"<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" width=\"%dpx\" height=\"%dpx\" "
@@ -443,10 +444,21 @@ void RBdraw(rb_tree tree, char *fname) {
 	fputs("</svg>\n", fp);
 	fclose(fp);
 }
-/* Draws a subtree rooted at a given node between l and r, at height h. */
 /* This method has complicated and seemingly-arbitrary arguments to reduce on
  * computation. It's a private method, so I feel justified in making it hard to
- * call. */
+ * call.
+ *
+ * Arguments are:
+ * fp     - file pointer to print to
+ * tree   - red-black tree to print
+ * n      - current node
+ * x      - correct x position of center of node
+ * y      - correct y position of center of node
+ * h      - distance from bottom of tree (not necessarily the height of this
+ *          particular node)
+ * rowpos - position in layer (leftmost node in layer is 0, then 1, etc.)
+ * factor - correction factor when the image is > MAXWIDTH.
+ */
 static void rb_draw_subtree(FILE *fp, rb_tree tree, rb_node n, double x, double y, int h, int rowpos, double factor) {
 	/* Declare a metric truckload of variables for calculation purposes */
 	char *col = (n->color == 'b') ? "black" : "red";

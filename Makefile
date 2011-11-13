@@ -1,4 +1,5 @@
 ZIPFILE = P2-Wilson-Louis.zip
+INZIP = main.c RBtree.c RBtree.h RBtree_priv.h README.txt Makefile
 CFLAGS += -Wall -pedantic
 LDFLAGS += -s
 
@@ -15,7 +16,7 @@ RBtree.o: RBtree.h RBtree_priv.h
 clean:
 	-rm run $(OBJECTS) 
 
-$(ZIPFILE):
-	zip $(ZIPFILE) main.c RBtree.c RBtree.h RBtree_priv.h README.txt Makefile
+$(ZIPFILE): $(INZIP)
+	zip $(ZIPFILE) $(INZIP)
 
 zip: $(ZIPFILE)

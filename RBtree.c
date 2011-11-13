@@ -431,7 +431,7 @@ void RBdraw(rb_tree tree, char *fname) {
 		fprintf(stderr, "Error: couldn't open %s for writing.\n", fname);
 		return;
 	}
-	width = pow2(height-1) * (2*RADIUS + PADDING) - PADDING + 2*IMGBORDER;
+	width = (1<<(height-1)) * (2*RADIUS + PADDING) - PADDING + 2*IMGBORDER;
 	adjwidth = (width > MAXWIDTH) ? MAXWIDTH : width;
 	/* If it weren't for this factor, calculations would be a lot easier. */
 	factor = (height == 1) ? 1.0 : (adjwidth-2*(RADIUS+IMGBORDER)) / (width-2*(RADIUS+IMGBORDER));
@@ -494,15 +494,5 @@ static void rb_draw_subtree(FILE *fp, rb_tree tree, rb_node n, double x, double 
  * its row. factor corrects for an image which would be greater than MAXWIDTH. */
 static double calcpos(int exp, int rowpos, double factor) {
 	/* This equation took quite a bit of diagramming on paper to come up with. */
-	return (pow2(exp) * (2*rowpos+1) - 1) * (RADIUS + PADDING/2) * factor + RADIUS + IMGBORDER;
-}
-/* Computes 2^h */
-static int pow2(int h) {
-	int ret = 1, base = 2;
-	while (h) {
-		if (h & 1) ret *= base;
-		h >>= 1;
-		base *= base;
-	}
-	return ret;
+	return ((1<<exp) * (2*rowpos+1) - 1) * (RADIUS + PADDING/2) * factor + RADIUS + IMGBORDER;
 }

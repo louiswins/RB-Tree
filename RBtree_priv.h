@@ -59,17 +59,15 @@ static rb_node rb_min(rb_tree tree, rb_node node);
 static int rb_height(rb_tree tree, rb_node n);
 
 /* Section 6: SVG */
-#define RADIUS 15.0   /* Radius of each node */
-#define PADDING 10.0  /* Padding between nodes */
-#define MAXWIDTH 1000 /* Maximum width of an image in px */
-#define IMGBORDER 5   /* Blank space around image */
+#define RADIUS    15.0 /* Radius of each node */
+#define PADDING   10.0 /* Padding between nodes */
+#define MAXWIDTH  1000 /* Maximum width of an image in px */
+#define IMGBORDER 5    /* Blank space around image */
 /* Draws a subtree rooted at a node n */
 static void rb_draw_subtree(FILE *fp, rb_tree tree, rb_node n, double x,
 		double y, int h, int rowpos, double factor);
 /* Calculates x position of circle exp rows from the top, at position rowpos in
  * its row. factor corrects for an image which would be greater than MAXWIDTH. */
 static double calcpos(int exp, int rowpos, double factor);
-/* Computes 2^h, twice the maximum width of a tree of height h. */
-static int pow2(int h);
 
 #endif /* RBTREE_PRIV_H */

@@ -9,7 +9,11 @@ This program is written using C.
 To compile, simply type `make' at the command line. This creates an executable
 called `run'.
 
-One additional feature implemented was the draw command, `T'. This creates a
+The program is created using proven information-hiding principles - the header
+file RBtree_priv.h is only needed to compile the library, and you should only
+include RBtree.h in your own program.
+
+One additional feature implemented was the picture command, `P'. This creates a
 Scalable Vector Graphics image. It can be converted to a more traditional image
-format (such as PNG) with several programs, such as ImageMagick's `convert'.
+format (such as PNG) with another program, such as ImageMagick's `convert'.
 (See http://www.imagemagick.org/script/index.php.)

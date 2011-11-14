@@ -95,9 +95,9 @@ int RBinsert(rb_tree tree, int key) {
 	while (pos != tree->nil) {
 		newparent = pos;
 		if (key < pos->key) {
-			pos = root->lchild;
+			pos = pos->lchild;
 		} else if (key > pos->key) {
-			pos = root->rchild;
+			pos = pos->rchild;
 		} else {
 			/* We don't support two nodes with the same value. */
 			fprintf(stderr, "Error: node %i already in the tree.\n", key);

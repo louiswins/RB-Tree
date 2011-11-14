@@ -13,7 +13,7 @@ void help() {
 "\tW   - Write tree to screen in preorder format\n"
 "\tI n - Insert node with key `n' into tree\n"
 "\tD n - Delete node with key `n' from tree\n"
-"\tT   - draw Tree in %s\n"
+"\tP   - draw Picture in %s\n"
 "\tH   - Help\n"
 "\tS   - Stop\n",
 READFILE, DRAWFILE);
@@ -95,8 +95,8 @@ int main(int argc, char *argv[]) {
 					}
 				} 
 				break;
-			case 'T':
-			case 't':
+			case 'P':
+			case 'p':
 				if (tree == NULL) {
 					fprintf(stderr, "Error: no tree loaded, cannot draw.\n");
 				} else {
@@ -131,8 +131,8 @@ int main(int argc, char *argv[]) {
 	/* We need to free the tree. */
 	if (tree != NULL) {
 		RBfree(tree);
-		RBcleanup();
 	}
+	RBcleanup();
 
 	return 0;
 }

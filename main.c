@@ -40,87 +40,87 @@ int main(int argc, char *argv[]) {
 			}
 		}
 		switch(cmd) {
-			case 'C':
-			case 'c':
-				/* If we already had a tree, we need to free up
-				 * the memory. */
+		case 'C':
+		case 'c':
+			/* If we already had a tree, we need to free up
+			 * the memory. */
+			if (tree != NULL) {
+				printf("Tree already exists - clearing.\n");
+				RBfree(tree);
+			}
+			tree = RBcreate();
+			break;
+		case 'R':
+		case 'r':
+			tmp = RBread(READFILE);
+			/* If there was an error, just keep the tree we
+			 * have. */
+			if (tmp != NULL) {
 				if (tree != NULL) {
-					printf("Tree already exists - clearing.\n");
+					printf("Non-empty tree - overwriting.\n");
 					RBfree(tree);
 				}
+				tree = tmp;
+			}
+			break;
+		case 'W':
+		case 'w':
+			if (tree == NULL) {
+				fprintf(stderr, "Error: no tree loaded, cannot write.\n");
+			} else {
+				RBwrite(tree);
+			}
+			break;
+		case 'I':
+		case 'i':
+			if (tree == NULL) {
+				printf("No tree loaded - creating empty one.\n");
 				tree = RBcreate();
-				break;
-			case 'R':
-			case 'r':
-				tmp = RBread(READFILE);
-				/* If there was an error, just keep the tree we
-				 * have. */
-				if (tmp != NULL) {
-					if (tree != NULL) {
-						printf("Non-empty tree - overwriting.\n");
-						RBfree(tree);
-					}
-					tree = tmp;
-				}
-				break;
-			case 'W':
-			case 'w':
-				if (tree == NULL) {
-					fprintf(stderr, "Error: no tree loaded, cannot write.\n");
-				} else {
-					RBwrite(tree);
-				}
-				break;
-			case 'I':
-			case 'i':
-				if (tree == NULL) {
-					printf("No tree loaded - creating empty one.\n");
-					tree = RBcreate();
-				}
+			}
+			if (scanf("%d", &arg) != 1) {
+				fprintf(stderr, "Error: must specify integer key to insert.\n");
+			} else {
+				RBinsert(tree, arg);
+			}
+			break;
+		case 'D':
+		case 'd':
+			if (tree == NULL) {
+				fprintf(stderr, "Error: no tree loaded, cannot delete.\n");
+			} else {
 				if (scanf("%d", &arg) != 1) {
-					fprintf(stderr, "Error: must specify integer key to insert.\n");
+					fprintf(stderr, "Error: must specify integer key to delete.\n");
 				} else {
-					RBinsert(tree, arg);
+					RBdelete(tree, arg);
 				}
-				break;
-			case 'D':
-			case 'd':
-				if (tree == NULL) {
-					fprintf(stderr, "Error: no tree loaded, cannot delete.\n");
-				} else {
-					if (scanf("%d", &arg) != 1) {
-						fprintf(stderr, "Error: must specify integer key to delete.\n");
-					} else {
-						RBdelete(tree, arg);
-					}
-				} 
-				break;
-			case 'P':
-			case 'p':
-				if (tree == NULL) {
-					fprintf(stderr, "Error: no tree loaded, cannot draw.\n");
-				} else {
-					RBdraw(tree, DRAWFILE);
-				}
-				break;
-			case 'H':
-			case 'h':
-				help();
-				break;
-			case EOF:
-				/* Make the shell not return on the same line */
-				putchar('\n');
-			case 'S':
-			case 's':
-				cmd = EOF;
-				break;
-			/* Corresponds to an empty command */
-			case '\n':
-				break;
-			default:
-				fprintf(stderr, "Error: unknown command `%c'.\n", cmd);
-				help();
-				break;
+			} 
+			break;
+		case 'P':
+		case 'p':
+			if (tree == NULL) {
+				fprintf(stderr, "Error: no tree loaded, cannot draw.\n");
+			} else {
+				RBdraw(tree, DRAWFILE);
+			}
+			break;
+		case 'H':
+		case 'h':
+			help();
+			break;
+		case EOF:
+			/* Make the shell not return on the same line */
+			putchar('\n');
+		case 'S':
+		case 's':
+			cmd = EOF;
+			break;
+		/* Corresponds to an empty command */
+		case '\n':
+			break;
+		default:
+			fprintf(stderr, "Error: unknown command `%c'.\n", cmd);
+			help();
+			break;
 		}
 		if (cmd != EOF) {
 			/* Delete the rest of the line. */

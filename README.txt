@@ -1,5 +1,5 @@
 CSE 310 Programming Project #2 - Red-Black trees
-13 Nov. 2011
+15 Nov. 2011
 Louis Wilson
 Prof. Guoliang Xue
 T/R 1:30 - 2:45 (71410)

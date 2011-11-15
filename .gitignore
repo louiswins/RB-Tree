@@ -1,7 +1,0 @@
-run
-run-debug
-*.o
-*.svg
-*.pdf
-*.zip
-RBinput.txt

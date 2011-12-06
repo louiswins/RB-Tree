@@ -178,7 +178,7 @@ int RBdelete(rb_tree tree, int key) {
 	/* Original color of the deleted node */
 	char orig_col = dead->color;
 	/* Node does not exist, so we cannot delete it */
-	if (dead == NULL) {
+	if (dead == tree->nil) {
 		fprintf(stderr, "Error: node %i does not exist.\n", key);
 		return 0;
 	}
@@ -373,7 +373,7 @@ static rb_node rb_get_node_by_key(rb_tree haystack, int needle) {
 			pos = pos->rchild;
 		}
 	}
-	return NULL;
+	return haystack->nil;
 }
 /* Rotates a tree around the given root. */
 static void rb_rotate(rb_tree tree, rb_node root, int go_left) {
